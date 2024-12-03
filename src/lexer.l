@@ -19,7 +19,6 @@ COMMENT "/*".*"*/"|"//".*
 {NL}                { /* skip new line */        }
 
 "if"                { return yy::parser::token_type::IF;    }    
-"else"              { return yy::parser::token_type::ELSE;  }
 "while"             { return yy::parser::token_type::WHILE; }
 "?"                 { return yy::parser::token_type::INPUT; }
 "print"             { return yy::parser::token_type::OUTPUT; }

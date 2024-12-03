@@ -30,13 +30,14 @@
 
 %code requires
 {
-
+#include "node.hpp"
 // forward decl of argument to parser
 namespace yy { class NumDriver; }
 }
 
 %code
 {
+#include "node.hpp"
 #include "driver.hpp"
 
 namespace yy {
@@ -61,7 +62,6 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 /* Statements */
     IF
-    ELSE
     WHILE
     ASSIGMENT
 
@@ -82,66 +82,123 @@ parser::token_type yylex(parser::semantic_type* yylval,
 ;
 
 %token <int> NUMBER
-%token <int> NAME
+%token <std::string> NAME
+%nterm <node::ScopeNode*> StatementList
+%nterm <node::Node*> Statement
+
+%nterm <node::Node*> Assigment
+%nterm <node::Node*> Condition
+%nterm <node::Node*> Loop
+
+
+%nterm <node::ExprNode*> Expression
+%nterm <node::ExprNode*> Summand
+%nterm <node::ExprNode*> Multiplier
+%nterm <node::ExprNode*> Terminals
+
+%nterm <node::BinCompOpNode*> Predicat
+%nterm <node::BinCompOpNode_t> CompareOpetators
 
 %start program
 
 %%
 
-program: StatementList
-;
+program: StatementList {
+};
 
-StatementList: Statement StatementList {std::cout << "" << std::endl; }
-              | %empty {std::cout << "Empty" << std::endl; }
-;
+StatementList: Statement StatementList {
+    auto root = new node::ScopeNode();
+    root->AddStatement($1);
+    $$ = root;
+}
+| %empty {
+    $$ = nullptr;
+};
 
-Statement: Output SEMICOLON {std::cout << ";" << std::endl;}
-        |  Condition
-        |  Loop
-        |  Assigment SEMICOLON {std::cout << ";" << std::endl;}
-;
+Statement: OUTPUT Expression SEMICOLON {
+    $$ = static_cast<node::Node*>(new node::OutputNode($2));
+}
+| Condition {
+    $$ = $1;
+}
+| Loop {
+    $$ = $1;
+}
+| Assigment SEMICOLON {
+    $$ = $1;
+};
 
-Output: OUTPUT Expression {std::cout << "OUTPUT" << std::endl;}
-;
+Condition: IF LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC {
+    $$ = static_cast<node::Node*>(new node::CondNode($3, $6));
+};
 
-Condition: IF LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC
-;
+Loop : WHILE LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC {
+    $$ = static_cast<node::Node*>(new node::LoopNode($3, $6));
+};
 
-Loop: WHILE LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC
-;
+Predicat: Expression CompareOpetators Expression {
+    $$ = new node::BinCompOpNode($2, $1, $3);
+};
 
-Predicat: Expression CompareOpetators Expression 
-;
+CompareOpetators: EQUAL {
+    $$ = node::BinCompOpNode_t::equal;
+}
+| NOT_EQUAL {
+    $$ = node::BinCompOpNode_t::not_equal;
+}
+| GREATER {
+    $$ = node::BinCompOpNode_t::greater;
+}
+| LESS {
+    $$ = node::BinCompOpNode_t::less;
+}
+| GREATER_OR_EQUAL {
+    $$ = node::BinCompOpNode_t::greater_or_equal;
+}
+| LESS_OR_EQUAL {
+    $$ = node::BinCompOpNode_t::less_or_equal;
+};
 
-CompareOpetators: EQUAL
-                | NOT_EQUAL
-                | GREATER
-                | LESS
-                | GREATER_OR_EQUAL
-                | LESS_OR_EQUAL
-;
+Assigment: NAME ASSIGMENT Expression {
+    $$ = static_cast<node::Node*>(new node::AssignNode(new node::DeclNode($1), $3));
+};
 
-Assigment: NAME ASSIGMENT Expression {std::cout << "NAME =" << std::endl; }
-        |  NAME ASSIGMENT INPUT {std::cout << "NAME = INPUT" << std::endl;}
-;
+Expression: Expression ADD Summand {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::add, $1, $3));
+}
+| Expression SUB Summand {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::sub, $1, $3));
+}
+| Summand {
+    $$ = $1;
+}
+| INPUT {
+    $$ = static_cast<node::ExprNode*>(new node::InputNode());
+};
 
-Expression: Expression ADD Summand {std::cout << "ADD Summand" << std::endl;}
-          | Expression SUB Summand {std::cout << "SUB Summand" << std::endl;}
-          | Summand {std::cout << "Summand" <<std::endl;}
-;
+Summand: Summand MULT Multiplier {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::mul, $1, $3));
+}
+| Summand DIV Multiplier {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::div, $1, $3));
+}
+| Multiplier {
+    $$ = $1;
+};
 
-Summand:  Summand MULT Multiplier {std::cout << " MULT Multiplier" << std::endl;}
-        | Summand DIV Multiplier {std::cout << " DIV Multiplier" << std::endl;}
-        | Multiplier {std::cout << "Multiplier" << std::endl;}
-;
+Multiplier: LBRAC Expression RBRAC {
+    $$ = $2;
+}
+| Terminals {
+    $$ = $1;
+};
 
-Multiplier: LBRAC Expression RBRAC {std::cout << "" << std::endl;}
-          | Terminals {std::cout << "Terminals" << std::endl;}
-;
-
-Terminals: NUMBER {std::cout << "Number" << std::endl;}
-         | NAME {std::cout << "Name" << std::endl;}
-;
+Terminals: NUMBER {
+    $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
+}
+| NAME {
+    $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
+};
 
 %%
 
