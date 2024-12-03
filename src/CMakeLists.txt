@@ -4,6 +4,8 @@ project(Interpretator)
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=leak,address,undefined")
+
 if (NOT DEFINED GRAMMAR)
   set(GRAMMAR "parser.yy" CACHE STRING "file with grammar of language" FORCE)
 endif()

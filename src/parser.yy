@@ -90,7 +90,6 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %nterm <node::Node*> Condition
 %nterm <node::Node*> Loop
 
-
 %nterm <node::ExprNode*> Expression
 %nterm <node::ExprNode*> Summand
 %nterm <node::ExprNode*> Multiplier
@@ -104,6 +103,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %%
 
 program: StatementList {
+    driver->SetRootNode(static_cast<node::Node*>($1));
 };
 
 StatementList: Statement StatementList {

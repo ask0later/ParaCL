@@ -7,47 +7,49 @@ namespace node {
 
     enum Node_t
     {
-        no_type,
-        expr,
-        decl,
-        cond,
-        loop,
-        assign,
-        scope,
-        output
+        no_type = 0,
+        expr = 1,
+        decl = 2,
+        cond = 3,
+        loop = 4, 
+        assign = 5,
+        scope = 6,
+        output = 7
     };
 
     enum BinOpNode_t
     {
-        add,
-        sub,
-        mul,
-        div
+        add = 8,
+        sub = 9,
+        mul = 10,
+        div = 11
     };
 
     enum BinCompOpNode_t
     {
-        equal,
-        not_equal,
-        greater,
-        less,
-        greater_or_equal,
-        less_or_equal
+        equal = 12,
+        not_equal = 13,
+        greater = 14,
+        less = 15,
+        greater_or_equal = 16,
+        less_or_equal = 17
     };
 
     enum ExprNode_t
     {
-        bin_op,
-        bin_comp_op,
-        number,
-        var,
-        input
+        bin_op = 18,
+        bin_comp_op = 19,
+        number = 20,
+        var = 21,
+        input = 22
     };
     
     class Node {
     public:
         Node(Node_t type = no_type) : type_(type) {} 
         virtual ~Node() {}
+        
+        // virtual void Execute() = 0;
     private:
         Node_t type_;
     }; // class Node
@@ -56,6 +58,7 @@ namespace node {
     {
     public:
         ExprNode(ExprNode_t type) : Node(Node_t::expr), type_(type) {}
+
     private:
         ExprNode_t type_;
     }; // class ExprNode

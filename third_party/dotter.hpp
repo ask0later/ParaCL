@@ -110,19 +110,19 @@ public:
 
     static std::map<COLORS, std::string> colors_map = 
     {
-        {COLORS::BLACK, "black"},
-        {COLORS::BLUE, "blue"},
-        {COLORS::GREEN, "green"},
-        {COLORS::RED, "red"},
-        {COLORS::WHITE, "white"},
+        {COLORS::RED,    "red"   },
+        {COLORS::BLUE,   "blue"  },
+        {COLORS::BLACK,  "black" },
+        {COLORS::GREEN,  "green" },
+        {COLORS::WHITE,  "white" },
         {COLORS::YELLOW, "yellow"}
     };
 
     static std::map<NodeStyle::SHAPES, std::string> node_shapes_map = 
     {
-        {NodeStyle::SHAPES::BOX, "box"},
-        {NodeStyle::SHAPES::DIAMOND, "diamond"},
-        {NodeStyle::SHAPES::ELLIPSE, "ellipse"},
+        {NodeStyle::SHAPES::BOX,      "box"     },
+        {NodeStyle::SHAPES::DIAMOND,  "diamond" },
+        {NodeStyle::SHAPES::ELLIPSE,  "ellipse" },
         {NodeStyle::SHAPES::TRIANGLE, "triangle"}
     };
 

@@ -32,9 +32,17 @@ public:
         bool res = parser.parse();
         return !res;
     }
+
+    void SetRootNode(node::Node *root) {
+        root_ = root;
+    }
+
+    node::Node *GetRootNode() const {
+        return root_;
+    }
+
 private:
     FlexLexer *plex_;
-public:
     node::Node *root_;
 };
 
