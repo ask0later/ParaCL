@@ -6,20 +6,25 @@
 
 namespace yy {
 
-class NumDriver {
+class Driver {
 public:
-    NumDriver(FlexLexer *plex) : plex_(plex) {}
+    Driver(FlexLexer *plex) : plex_(plex) {}
 
     parser::token_type yylex(parser::semantic_type *yylval) {
         parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
-        if (tt == yy::parser::token_type::NUMBER)
+        
+        if (tt == yy::parser::token_type::NUMBER) {
             yylval->as<int>() = std::stoi(plex_->YYText());
+        }
 
-        if (tt = yy::parser::token_type::NAME)
-            yylval->as<std::string>() = plex_->YYText();
+        if (tt == yy::parser::token_type::NAME) {
+            parser::semantic_type tmp;
+            tmp.as<std::string>() = plex_->YYText();
+            yylval->swap<std::string>(tmp);
+        }
 
         if (tt == yy::parser::token_type::ERR) {
-            std::cout << "Lexical error, unrecoginzed lexem: '" << plex_->YYText()
+            std::cout << "Lexical error, unrecoginzed lexem" << plex_->YYText() 
                       << "' at line #" << plex_->lineno() << std::endl;
             std::terminate();
         }
@@ -39,6 +44,10 @@ public:
 
     node::Node *GetRootNode() const {
         return root_;
+    }
+
+    void Execute() {
+        root_->Execute();
     }
 
 private:
