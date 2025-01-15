@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------------------- **
  *
  *  Grammar of compiler 
- *
+ *  
+ *  Scope -> StatementList 
  *  StatementList -> Statement StatementList | Empty
  *  Statement -> While | If | Assigment;
  *  Assigment -> Variable = Expression
@@ -13,8 +14,8 @@
  *  Terminals -> Number | Variable
  *
  *
- *  While -> (Expression CompareOp Expression) { StatementList }
- *  If -> (Expression CompareOp Expression) { StatementList }
+ *  While -> (Expression CompareOp Expression) Scope
+ *  If -> (Expression CompareOp Expression) Scope | (Expression CompareOp Expression) Scope Scope 
  *
  *  CompareOp -> Equal | NotEqual | Less | Greater | EqualOrLess | EqualOrGreater
  *  Operator -> + | -
@@ -26,13 +27,13 @@
 %skeleton "lalr1.cc"
 %defines
 %define api.value.type variant
-%param {yy::NumDriver* driver}
+%param {yy::Driver* driver}
 
 %code requires
 {
 #include "node.hpp"
 // forward decl of argument to parser
-namespace yy { class NumDriver; }
+namespace yy { class Driver; }
 }
 
 %code
@@ -42,7 +43,7 @@ namespace yy { class NumDriver; }
 
 namespace yy {
 parser::token_type yylex(parser::semantic_type* yylval,                         
-                         NumDriver* driver);
+                         Driver* driver);
 }
 }
 
@@ -62,6 +63,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 /* Statements */
     IF
+    ELSE
     WHILE
     ASSIGMENT
 
@@ -83,11 +85,14 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %token <int> NUMBER
 %token <std::string> NAME
+
+%nterm <node::ScopeNode*> Scope
 %nterm <node::ScopeNode*> StatementList
 %nterm <node::Node*> Statement
 
 %nterm <node::Node*> Assigment
 %nterm <node::Node*> Condition
+%nterm <node::ScopeNode*> Else
 %nterm <node::Node*> Loop
 
 %nterm <node::ExprNode*> Expression
@@ -102,102 +107,120 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %%
 
-program: StatementList {
-    driver->SetRootNode(static_cast<node::Node*>($1));
+program: Scope {
+    driver->SetRootNode($1);
+    std::cout << "main\n";
 };
 
-StatementList: Statement StatementList {
-    auto root = new node::ScopeNode();
-    root->AddStatement($1);
-    $$ = root;
-}
-| %empty {
-    $$ = nullptr;
+Scope: StatementList {
+    $$ = $1;
+};
+
+StatementList: StatementList Statement {
+    std::cout << "add statement" << std::endl;
+    $1->AddStatement($2);
+    $$ = $1;
+} | %empty {
+    std::cout << "empty" << std::endl;
+    $$ = new node::ScopeNode();
 };
 
 Statement: OUTPUT Expression SEMICOLON {
+    std::cout << "Expression" << std::endl;
     $$ = static_cast<node::Node*>(new node::OutputNode($2));
-}
-| Condition {
+} | Condition {
+    std::cout << "cond" << std::endl;
     $$ = $1;
 }
 | Loop {
+    std::cout << "loop" << std::endl;
     $$ = $1;
-}
-| Assigment SEMICOLON {
+} | Assigment SEMICOLON {
+    std::cout << "Assign" << std::endl;
     $$ = $1;
 };
 
-Condition: IF LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC {
-    $$ = static_cast<node::Node*>(new node::CondNode($3, $6));
+Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
+    $$ = static_cast<node::Node*>(new node::CondNode($3, $6, $8));
+    std::cout << "in cond" << std::endl;
 };
 
-Loop : WHILE LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC {
+Else: ELSE LCURBRAC Scope RCURBRAC {
+    std::cout << "else" << std::endl;
+    $$ = $3;
+} | %empty {
+    $$ = nullptr;
+};
+
+Loop : WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
+    std::cout << "in loop" << std::endl;
     $$ = static_cast<node::Node*>(new node::LoopNode($3, $6));
 };
 
 Predicat: Expression CompareOpetators Expression {
+    std::cout << "Predicat" << std::endl;
     $$ = new node::BinCompOpNode($2, $1, $3);
 };
 
 CompareOpetators: EQUAL {
     $$ = node::BinCompOpNode_t::equal;
-}
-| NOT_EQUAL {
+} | NOT_EQUAL {
     $$ = node::BinCompOpNode_t::not_equal;
-}
-| GREATER {
+} | GREATER {
     $$ = node::BinCompOpNode_t::greater;
-}
-| LESS {
+} | LESS {
     $$ = node::BinCompOpNode_t::less;
-}
-| GREATER_OR_EQUAL {
+} | GREATER_OR_EQUAL {
     $$ = node::BinCompOpNode_t::greater_or_equal;
-}
-| LESS_OR_EQUAL {
+} | LESS_OR_EQUAL {
     $$ = node::BinCompOpNode_t::less_or_equal;
 };
 
 Assigment: NAME ASSIGMENT Expression {
+    std::cout << "in assign" << std::endl;
     $$ = static_cast<node::Node*>(new node::AssignNode(new node::DeclNode($1), $3));
 };
 
 Expression: Expression ADD Summand {
+    std::cout << "ADD" << std::endl;
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::add, $1, $3));
-}
-| Expression SUB Summand {
+} | Expression SUB Summand {
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::sub, $1, $3));
-}
-| Summand {
-    $$ = $1;
-}
-| INPUT {
-    $$ = static_cast<node::ExprNode*>(new node::InputNode());
+    std::cout << "Sub" << std::endl;
+} | Summand {
+    $$ = $1;  
+    std::cout << "Summand" << std::endl;
 };
 
 Summand: Summand MULT Multiplier {
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::mul, $1, $3));
-}
-| Summand DIV Multiplier {
+    std::cout << "mul" << std::endl;
+} | Summand DIV Multiplier {
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::div, $1, $3));
-}
-| Multiplier {
+    std::cout << "dic" << std::endl;
+} | Multiplier {
     $$ = $1;
+    std::cout << "Multiplier" << std::endl;
 };
 
 Multiplier: LBRAC Expression RBRAC {
     $$ = $2;
-}
-| Terminals {
+    std::cout << "in Multiplier" << std::endl;
+} | Terminals {
     $$ = $1;
+    std::cout << "Terminals" << std::endl;
 };
 
 Terminals: NUMBER {
-    $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
-}
-| NAME {
-    $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
+    std::cout << "Number = " << $1 << std::endl;
+    // $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
+} | NAME {
+    std::cout << "Name = " << $1 << std::endl;
+    std::cout << "Param " << std::endl;
+    // $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
+} | INPUT {
+    std::cout << "input" << std::endl;
+    // $$ = static_cast<node::ExprNode*>(new node::InputNode());
 };
 
 %%
@@ -205,7 +228,7 @@ Terminals: NUMBER {
 namespace yy {
 
 parser::token_type yylex(parser::semantic_type* yylval,                         
-                         NumDriver* driver)
+                         Driver* driver)
 {
   return driver->yylex(yylval);
 }
