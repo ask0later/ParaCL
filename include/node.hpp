@@ -82,6 +82,8 @@ namespace node {
     private:
         std::unordered_map<std::string, int> varMap_;
     };
+
+    static SymbolTable symbolTable;
     
     class Node {
     public:
@@ -99,7 +101,7 @@ namespace node {
             dotter.render();
         }
 
-        SymbolTable symbolTable_{};
+        //SymbolTable symbolTable_{};
     private:
         Node_t type_;
     }; // class Node
@@ -247,7 +249,7 @@ namespace node {
         int Execute() override {
             int input = 0;
             std::cin >> input;
-            return input; 
+            return input;
         }
 
         void Draw(dotter::Dotter &dotter, int id) const override
@@ -268,7 +270,7 @@ namespace node {
         VarNode(const std::string &name) : ExprNode(ExprNode_t::var), name_(std::move(name)) {}
         
         int Execute() override {
-            return symbolTable_.GetValue(name_);
+            return symbolTable.GetValue(name_);
         }
 
         void Draw(dotter::Dotter &dotter, int id) const override
@@ -294,7 +296,8 @@ namespace node {
         
         int Execute() override {
             for (auto &statement : kids_) {
-                statement->Execute();
+                if (statement != nullptr)
+                    statement->Execute();
             }
             return 0;
         }
@@ -444,7 +447,7 @@ namespace node {
         int Execute() override {
             int result = expr_->Execute();
             auto name = var_->GetName();
-            symbolTable_.SetOrAddName(name, result);
+            symbolTable.SetOrAddName(name, result);
             return 0;
         }
 
