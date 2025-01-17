@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------------------- **
  *
  *  Grammar of compiler 
- *
+ *  
+ *  Scope -> StatementList 
  *  StatementList -> Statement StatementList | Empty
  *  Statement -> While | If | Assigment;
  *  Assigment -> Variable = Expression
@@ -13,8 +14,8 @@
  *  Terminals -> Number | Variable
  *
  *
- *  While -> (Expression CompareOp Expression) { StatementList }
- *  If -> (Expression CompareOp Expression) { StatementList }
+ *  While -> (Expression CompareOp Expression) Scope
+ *  If -> (Expression CompareOp Expression) Scope | (Expression CompareOp Expression) Scope Scope 
  *
  *  CompareOp -> Equal | NotEqual | Less | Greater | EqualOrLess | EqualOrGreater
  *  Operator -> + | -
@@ -26,22 +27,23 @@
 %skeleton "lalr1.cc"
 %defines
 %define api.value.type variant
-%param {yy::NumDriver* driver}
+%param {yy::Driver* driver}
 
 %code requires
 {
-
+#include "node.hpp"
 // forward decl of argument to parser
-namespace yy { class NumDriver; }
+namespace yy { class Driver; }
 }
 
 %code
 {
+#include "node.hpp"
 #include "driver.hpp"
 
 namespace yy {
 parser::token_type yylex(parser::semantic_type* yylval,                         
-                         NumDriver* driver);
+                         Driver* driver);
 }
 }
 
@@ -82,73 +84,127 @@ parser::token_type yylex(parser::semantic_type* yylval,
 ;
 
 %token <int> NUMBER
-%token <int> NAME
+%token <std::string> NAME
+
+%nterm <node::ScopeNode*> Scope
+%nterm <node::ScopeNode*> StatementList
+%nterm <node::Node*> Statement
+
+%nterm <node::Node*> Assigment
+%nterm <node::Node*> Condition
+%nterm <node::ScopeNode*> Else
+%nterm <node::Node*> Loop
+
+%nterm <node::ExprNode*> Expression
+%nterm <node::ExprNode*> Summand
+%nterm <node::ExprNode*> Multiplier
+%nterm <node::ExprNode*> Terminals
+
+%nterm <node::BinCompOpNode*> Predicat
+%nterm <node::BinCompOpNode_t> CompareOpetators
 
 %start program
 
 %%
 
-program: StatementList
-;
+program: Scope {
+    driver->SetRootNode($1);
+};
 
-StatementList: Statement StatementList {std::cout << "" << std::endl; }
-              | %empty {std::cout << "Empty" << std::endl; }
-;
+Scope: StatementList {
+    $$ = $1;
+};
 
-Statement: Output SEMICOLON {std::cout << ";" << std::endl;}
-        |  Condition
-        |  Loop
-        |  Assigment SEMICOLON {std::cout << ";" << std::endl;}
-;
+StatementList: StatementList Statement {
+    $1->AddStatement($2);
+    $$ = $1;
+} | %empty {
+    $$ = new node::ScopeNode();
+};
 
-Output: OUTPUT Expression {std::cout << "OUTPUT" << std::endl;}
-;
+Statement: OUTPUT Expression SEMICOLON {
+    $$ = static_cast<node::Node*>(new node::OutputNode($2));
+} | Condition {
+    $$ = $1;
+}
+| Loop {
+    $$ = $1;
+} | Assigment SEMICOLON {
+    $$ = $1;
+};
 
-Condition: IF LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC
-;
+Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
+    $$ = static_cast<node::Node*>(new node::CondNode($3, $6, $8));
+};
 
-Loop: WHILE LBRAC Predicat RBRAC LCURBRAC StatementList RCURBRAC
-;
+Else: ELSE LCURBRAC Scope RCURBRAC {
+    $$ = $3;
+} | %empty {
+    $$ = nullptr;
+};
 
-Predicat: Expression CompareOpetators Expression 
-;
+Loop : WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
+    $$ = static_cast<node::Node*>(new node::LoopNode($3, $6));
+};
 
-CompareOpetators: EQUAL
-                | NOT_EQUAL
-                | GREATER
-                | LESS
-                | GREATER_OR_EQUAL
-                | LESS_OR_EQUAL
-;
+Predicat: Expression CompareOpetators Expression {
+    $$ = new node::BinCompOpNode($2, $1, $3);
+};
 
-Assigment: NAME ASSIGMENT Expression {std::cout << "NAME =" << std::endl; }
-        |  NAME ASSIGMENT INPUT {std::cout << "NAME = INPUT" << std::endl;}
-;
+CompareOpetators: EQUAL {
+    $$ = node::BinCompOpNode_t::equal;
+} | NOT_EQUAL {
+    $$ = node::BinCompOpNode_t::not_equal;
+} | GREATER {
+    $$ = node::BinCompOpNode_t::greater;
+} | LESS {
+    $$ = node::BinCompOpNode_t::less;
+} | GREATER_OR_EQUAL {
+    $$ = node::BinCompOpNode_t::greater_or_equal;
+} | LESS_OR_EQUAL {
+    $$ = node::BinCompOpNode_t::less_or_equal;
+};
 
-Expression: Expression ADD Summand {std::cout << "ADD Summand" << std::endl;}
-          | Expression SUB Summand {std::cout << "SUB Summand" << std::endl;}
-          | Summand {std::cout << "Summand" <<std::endl;}
-;
+Assigment: NAME ASSIGMENT Expression {
+    $$ = static_cast<node::Node*>(new node::AssignNode(new node::DeclNode($1), $3));
+};
 
-Summand:  Summand MULT Multiplier {std::cout << " MULT Multiplier" << std::endl;}
-        | Summand DIV Multiplier {std::cout << " DIV Multiplier" << std::endl;}
-        | Multiplier {std::cout << "Multiplier" << std::endl;}
-;
+Expression: Expression ADD Summand {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::add, $1, $3));
+} | Expression SUB Summand {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::sub, $1, $3));
+} | Summand {
+    $$ = $1;  
+};
 
-Multiplier: LBRAC Expression RBRAC {std::cout << "" << std::endl;}
-          | Terminals {std::cout << "Terminals" << std::endl;}
-;
+Summand: Summand MULT Multiplier {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::mul, $1, $3));
+} | Summand DIV Multiplier {
+    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::div, $1, $3));
+} | Multiplier {
+    $$ = $1;
+};
 
-Terminals: NUMBER {std::cout << "Number" << std::endl;}
-         | NAME {std::cout << "Name" << std::endl;}
-;
+Multiplier: LBRAC Expression RBRAC {
+    $$ = $2;
+} | Terminals {
+    $$ = $1;
+};
+
+Terminals: NUMBER {
+    $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
+} | NAME {
+    $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
+} | INPUT {
+    $$ = static_cast<node::ExprNode*>(new node::InputNode());
+};
 
 %%
 
 namespace yy {
 
 parser::token_type yylex(parser::semantic_type* yylval,                         
-                         NumDriver* driver)
+                         Driver* driver)
 {
   return driver->yylex(yylval);
 }

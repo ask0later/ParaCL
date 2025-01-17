@@ -6,7 +6,7 @@
 
 WS          [ \t\v]+
 NL          [\n]+
-NAME        [a-zA-Z_][a-zA-Z0-9_]*
+NAME        [a-zA-Z][a-zA-Z0-9_]*
 NUMBER      [1-9][0-9]*|0
 
 START_COMMENT   "/*"
@@ -56,7 +56,7 @@ COMMENT "/*".*"*/"|"//".*
 
 
 "="                 { return yy::parser::token_type::ASSIGMENT; }
-.                   { return yy::parser::token_type::ERR;}
+.                   { return yy::parser::token_type::ERR; }
 %%
 
 // nothing
