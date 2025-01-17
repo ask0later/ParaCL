@@ -50,6 +50,10 @@ public:
         root_->Execute();
     }
 
+    void DrawAST() {
+        root_->DrawAST();
+    }
+
 private:
     FlexLexer *plex_;
     node::Node *root_;

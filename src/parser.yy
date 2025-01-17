@@ -109,7 +109,6 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 program: Scope {
     driver->SetRootNode($1);
-    std::cout << "main\n";
 };
 
 Scope: StatementList {
@@ -117,48 +116,38 @@ Scope: StatementList {
 };
 
 StatementList: StatementList Statement {
-    std::cout << "add statement" << std::endl;
     $1->AddStatement($2);
     $$ = $1;
 } | %empty {
-    std::cout << "empty" << std::endl;
     $$ = new node::ScopeNode();
 };
 
 Statement: OUTPUT Expression SEMICOLON {
-    std::cout << "Expression" << std::endl;
     $$ = static_cast<node::Node*>(new node::OutputNode($2));
 } | Condition {
-    std::cout << "cond" << std::endl;
     $$ = $1;
 }
 | Loop {
-    std::cout << "loop" << std::endl;
     $$ = $1;
 } | Assigment SEMICOLON {
-    std::cout << "Assign" << std::endl;
     $$ = $1;
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
     $$ = static_cast<node::Node*>(new node::CondNode($3, $6, $8));
-    std::cout << "in cond" << std::endl;
 };
 
 Else: ELSE LCURBRAC Scope RCURBRAC {
-    std::cout << "else" << std::endl;
     $$ = $3;
 } | %empty {
     $$ = nullptr;
 };
 
 Loop : WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
-    std::cout << "in loop" << std::endl;
     $$ = static_cast<node::Node*>(new node::LoopNode($3, $6));
 };
 
 Predicat: Expression CompareOpetators Expression {
-    std::cout << "Predicat" << std::endl;
     $$ = new node::BinCompOpNode($2, $1, $3);
 };
 
@@ -177,50 +166,37 @@ CompareOpetators: EQUAL {
 };
 
 Assigment: NAME ASSIGMENT Expression {
-    std::cout << "in assign" << std::endl;
     $$ = static_cast<node::Node*>(new node::AssignNode(new node::DeclNode($1), $3));
 };
 
 Expression: Expression ADD Summand {
-    std::cout << "ADD" << std::endl;
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::add, $1, $3));
 } | Expression SUB Summand {
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::sub, $1, $3));
-    std::cout << "Sub" << std::endl;
 } | Summand {
     $$ = $1;  
-    std::cout << "Summand" << std::endl;
 };
 
 Summand: Summand MULT Multiplier {
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::mul, $1, $3));
-    std::cout << "mul" << std::endl;
 } | Summand DIV Multiplier {
     $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::div, $1, $3));
-    std::cout << "dic" << std::endl;
 } | Multiplier {
     $$ = $1;
-    std::cout << "Multiplier" << std::endl;
 };
 
 Multiplier: LBRAC Expression RBRAC {
     $$ = $2;
-    std::cout << "in Multiplier" << std::endl;
 } | Terminals {
     $$ = $1;
-    std::cout << "Terminals" << std::endl;
 };
 
 Terminals: NUMBER {
-    std::cout << "Number = " << $1 << std::endl;
-    // $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
+    $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
 } | NAME {
-    std::cout << "Name = " << $1 << std::endl;
-    std::cout << "Param " << std::endl;
-    // $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
+    $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
 } | INPUT {
-    std::cout << "input" << std::endl;
-    // $$ = static_cast<node::ExprNode*>(new node::InputNode());
+    $$ = static_cast<node::ExprNode*>(new node::InputNode());
 };
 
 %%

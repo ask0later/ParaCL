@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <cstring>
+#include <fstream>
 
 namespace dotter
 {

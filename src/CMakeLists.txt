@@ -29,6 +29,8 @@ add_executable(${PROJECT_NAME}
 )
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR})
+set(INCLUDE_DIR1 ${CMAKE_SOURCE_DIR}/third_party)
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR1})
 
 set(TARGETS
   ${PROJECT_NAME}
