@@ -1,0 +1,13 @@
+a = 3;
+st = 1;
+while (a > 0)
+{
+    b = 3;
+    while (b > 0)
+    {
+        st = st * 2;
+        b = b - 1;
+        print(st);
+    }
+    a = a - 1;
+}

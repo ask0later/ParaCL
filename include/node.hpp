@@ -5,10 +5,78 @@
 #include <iostream>
 #include <unordered_map>
 #include <cassert>
+#include <optional>
 
 #include "dotter.hpp"
 
 namespace node {
+
+    namespace symTable
+    {
+        class SymbolTable final {
+        public:
+            void SetOrAddValue(std::string &name, int value) {
+                varMap_[name] = value;
+            }
+
+            std::optional<int> GetValue(std::string &name) {
+                auto hit = varMap_.find(name);
+                if (hit != varMap_.end()) 
+                    return varMap_[name];
+
+                return std::nullopt;
+            }
+
+        private:
+            std::unordered_map<std::string, int> varMap_;
+        };
+
+        class SymbolTables final {
+        public:
+            SymbolTables() {
+                symbolTables.reserve(16);
+            }
+
+            void SetValue(std::string &name, int value) {
+                for (auto it = symbolTables.rbegin(); it != symbolTables.rend(); ++it)
+                {
+                    auto find = it->GetValue(name);
+                    if (find.has_value())
+                    {
+                        it->SetOrAddValue(name, value);
+                        return;
+                    }
+                }
+                symbolTables.back().SetOrAddValue(name, value);
+            }
+
+            int GetValue(std::string &name) {
+                for (auto it = symbolTables.rbegin(); it != symbolTables.rend(); ++it)
+                {
+                    auto find = it->GetValue(name);
+                    if (find.has_value())
+                        return *find;
+                }
+                std::cout << "Unknown variable " << name << std::endl;
+                std::terminate();
+            }
+
+            void PushSymTable()
+            {
+                symbolTables.push_back(SymbolTable{});
+            }
+
+            void PopSymTable()
+            {
+                symbolTables.pop_back();
+            }
+        private:
+            std::vector<SymbolTable> symbolTables;
+        };
+
+        static SymbolTables symbolTables;
+
+    }; // namespace symTable
 
     enum Node_t
     {
@@ -49,7 +117,7 @@ namespace node {
         input = 22
     };
 
-    static std::map<int, std::string> OpTexts =
+    const static std::map<int, std::string> OpTexts =
     {
         {BinOpNode_t::add, "+"},
         {BinOpNode_t::sub, "-"},
@@ -63,27 +131,6 @@ namespace node {
         {BinCompOpNode_t::less,             "<"},
         {BinCompOpNode_t::less_or_equal,    "<="}
     };
-
-    class SymbolTable final {
-    public:
-        void SetOrAddName(std::string &name, int value) {
-            varMap_[name] = value;
-        }
-
-        int GetValue(std::string &name) {
-            auto hit = varMap_.find(name);
-            if (hit != varMap_.end()) 
-                return varMap_[name];
-
-            std::cout << "Error" << std::endl;
-            std::terminate();
-        }
-
-    private:
-        std::unordered_map<std::string, int> varMap_;
-    };
-
-    static SymbolTable symbolTable;
     
     class Node {
     public:
@@ -91,7 +138,6 @@ namespace node {
         virtual ~Node() {}
         virtual int Execute() = 0;
         virtual void Draw(dotter::Dotter &dotter, int id) const = 0;
-        // virtual void GetInfo() = 0;
 
         void DrawAST()
         {
@@ -100,20 +146,15 @@ namespace node {
             dotter.print_dot_text();
             dotter.render();
         }
-
-        //SymbolTable symbolTable_{};
     private:
         Node_t type_;
     }; // class Node
-
-    // SymbolTable Node::symbolTable_{};
 
     class ExprNode : public Node 
     {
     public:
         ExprNode(ExprNode_t type) : Node(Node_t::expr), type_(type) {}
         int Execute() override = 0;
-        // void GetInfo() override = 0;
     private:
         ExprNode_t type_;
     }; // class ExprNode
@@ -144,7 +185,7 @@ namespace node {
         {
             dotter.set_node_style(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
-            dotter.add_node(OpTexts[type_], id);
+            dotter.add_node(OpTexts.at(type_), id);
             if (left_ != nullptr)
             {
                 left_->Draw(dotter, id * 2 + 1);
@@ -158,9 +199,6 @@ namespace node {
             }
         }
 
-        // BinOpNode_t GetInfo() override {
-        //     return type_;
-        // }
     private:
         BinOpNode_t type_;
         ExprNode *left_, *right_;
@@ -196,7 +234,7 @@ namespace node {
         {
             dotter.set_node_style(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
-            dotter.add_node(OpTexts[type_], id);
+            dotter.add_node(OpTexts.at(type_), id);
             if (left_ != nullptr)
             {
                 left_->Draw(dotter, id * 2 + 1);
@@ -210,9 +248,6 @@ namespace node {
             }
         }
 
-        // BinCompOpNode_t GetInfo() override {
-        //     return type_;
-        // }
     private:
         BinCompOpNode_t type_;
         ExprNode *left_, *right_;
@@ -234,9 +269,6 @@ namespace node {
             dotter.add_node(std::to_string(number_), id);
         }
 
-        // ExprNode_t GetInfo() override {
-        //     return ExprNode_t::number;
-        // }
     private:
         int number_;
     }; // class NumberNode
@@ -259,9 +291,6 @@ namespace node {
             dotter.add_node("Input", id);
         }
 
-        // ExprNode_t GetInfo() override {
-        //     return ExprNode_t::input;
-        // }
     }; // class InputNode
 
     class VarNode final : public ExprNode
@@ -270,7 +299,7 @@ namespace node {
         VarNode(const std::string &name) : ExprNode(ExprNode_t::var), name_(std::move(name)) {}
         
         int Execute() override {
-            return symbolTable.GetValue(name_);
+            return symTable::symbolTables.GetValue(name_);
         }
 
         void Draw(dotter::Dotter &dotter, int id) const override
@@ -280,9 +309,6 @@ namespace node {
             dotter.add_node(name_, id);
         }
 
-        // ExprNode_t GetInfo() override {
-        //     return ExprNode_t::var;
-        // }
     private:
         std::string name_;
     }; // class VarNode
@@ -295,10 +321,12 @@ namespace node {
         void AddStatement(Node *child) { kids_.push_back(child); }
         
         int Execute() override {
+            symTable::symbolTables.PushSymTable();
             for (auto &statement : kids_) {
                 if (statement != nullptr)
                     statement->Execute();
             }
+            symTable::symbolTables.PopSymTable();
             return 0;
         }
 
@@ -318,9 +346,6 @@ namespace node {
             }
         }
 
-        // Node_t GetInfo() override {
-        //     return Node_t::decl;
-        // }
     private:
         std::vector<Node*> kids_;
     }; // class ScopeNode
@@ -329,10 +354,6 @@ namespace node {
     {
     public:
         DeclNode(const std::string &name) : Node(Node_t::decl), name_(std::move(name)) {}
-
-        // std::string Execute() override {
-        //     return name_;
-        // }
 
         int Execute() override {
             return 0;
@@ -348,9 +369,6 @@ namespace node {
         std::string GetName() {
             return name_;
         }
-        // Node_t GetInfo() override {
-        //     return Node_t::decl;
-        // }
     private:
         std::string name_;
     }; // class DeclNode
@@ -393,9 +411,6 @@ namespace node {
             }
         }
 
-        // Node_t GetInfo() override {
-        //     return Node_t::cond;
-        // }
     private:
         BinCompOpNode *predicat_;
         ScopeNode *first_;
@@ -431,9 +446,6 @@ namespace node {
             dotter.add_link(id, id * 2 + 2);
         }
 
-        // Node_t GetInfo() override {
-        //     return Node_t::loop;
-        // }
     private:
         BinCompOpNode *predicat_;
         ScopeNode *scope_;
@@ -447,7 +459,7 @@ namespace node {
         int Execute() override {
             int result = expr_->Execute();
             auto name = var_->GetName();
-            symbolTable.SetOrAddName(name, result);
+            symTable::symbolTables.SetValue(name, result);
             return 0;
         }
 
@@ -469,10 +481,6 @@ namespace node {
             }
         }
         
-        // Node_t GetInfo() override {
-        //     return Node_t::assign;
-        // }
-
     private:
         DeclNode *var_;
         ExprNode *expr_;
@@ -500,9 +508,6 @@ namespace node {
             }
         }
 
-        // Node_t GetInfo() override {
-        //     return Node_t::output;
-        // }
     private:
         ExprNode *expr_;
     }; // class OutputNode
