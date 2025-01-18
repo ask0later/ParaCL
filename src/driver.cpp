@@ -8,5 +8,6 @@ int main() {
   yy::Driver driver(lexer);
   driver.parse();
   driver.DrawAST();
+  driver.Execute();
   delete lexer;
 }
