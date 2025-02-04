@@ -1,85 +1,30 @@
 #pragma once 
-
 #include <vector>
 #include <string>
-#include <iostream>
-#include <unordered_map>
-#include <cassert>
-#include <optional>
-
-#include "dotter.hpp"
 
 namespace node {
-
-    namespace symTable
-    {
-        class SymbolTable final {
+    namespace details {
+        template <typename T> class Builder final {
         public:
-            void SetOrAddValue(std::string &name, int value) {
-                varMap_[name] = value;
+            template <typename S, typename... Args>
+            S *GetObj(Args... args) {
+                auto tmp = new S{args...};
+                buffer_.push_back(static_cast<T *>(tmp));
+                return tmp;
             }
 
-            std::optional<int> GetValue(std::string &name) {
-                auto hit = varMap_.find(name);
-                if (hit != varMap_.end()) 
-                    return varMap_[name];
-
-                return std::nullopt;
+            void Clean() noexcept {
+                for (auto &&tmp : buffer_)
+                    delete tmp;
+                buffer_.clear();
             }
 
         private:
-            std::unordered_map<std::string, int> varMap_;
-        };
+            std::vector<T *> buffer_;
+        }; // class Builder
+    } // namespace details
 
-        class SymbolTables final {
-        public:
-            SymbolTables() {
-                symbolTables.reserve(16);
-            }
-
-            void SetValue(std::string &name, int value) {
-                for (auto it = symbolTables.rbegin(); it != symbolTables.rend(); ++it)
-                {
-                    auto find = it->GetValue(name);
-                    if (find.has_value())
-                    {
-                        it->SetOrAddValue(name, value);
-                        return;
-                    }
-                }
-                symbolTables.back().SetOrAddValue(name, value);
-            }
-
-            int GetValue(std::string &name) {
-                for (auto it = symbolTables.rbegin(); it != symbolTables.rend(); ++it)
-                {
-                    auto find = it->GetValue(name);
-                    if (find.has_value())
-                        return *find;
-                }
-                std::cout << "Unknown variable " << name << std::endl;
-                std::terminate();
-            }
-
-            void PushSymTable()
-            {
-                symbolTables.push_back(SymbolTable{});
-            }
-
-            void PopSymTable()
-            {
-                symbolTables.pop_back();
-            }
-        private:
-            std::vector<SymbolTable> symbolTables;
-        };
-
-        static SymbolTables symbolTables;
-
-    }; // namespace symTable
-
-    enum Node_t
-    {
+    enum Node_t {
         no_type = 0,
         expr = 1,
         decl = 2,
@@ -90,16 +35,14 @@ namespace node {
         output = 7
     };
 
-    enum BinOpNode_t
-    {
+    enum BinOpNode_t {
         add = 8,
         sub = 9,
         mul = 10,
         div = 11
     };
 
-    enum BinCompOpNode_t
-    {
+    enum BinCompOpNode_t {
         equal = 12,
         not_equal = 13,
         greater = 14,
@@ -108,8 +51,7 @@ namespace node {
         less_or_equal = 17
     };
 
-    enum ExprNode_t
-    {
+    enum ExprNode_t {
         bin_op = 18,
         bin_comp_op = 19,
         number = 20,
@@ -117,399 +59,155 @@ namespace node {
         input = 22
     };
 
-    const static std::map<int, std::string> OpTexts =
-    {
-        {BinOpNode_t::add, "+"},
-        {BinOpNode_t::sub, "-"},
-        {BinOpNode_t::mul, "*"},
-        {BinOpNode_t::div, "/"},
+    class NodeVisitor;
 
-        {BinCompOpNode_t::equal,            "=="},
-        {BinCompOpNode_t::not_equal,        "!="},
-        {BinCompOpNode_t::greater,          ">"},
-        {BinCompOpNode_t::greater_or_equal, ">="},
-        {BinCompOpNode_t::less,             "<"},
-        {BinCompOpNode_t::less_or_equal,    "<="}
-    };
-    
-    class Node {
-    public:
+    struct Node {
         Node(Node_t type = no_type) : type_(type) {} 
-        virtual ~Node() {}
-        virtual int Execute() = 0;
-        virtual void Draw(dotter::Dotter &dotter, int id) const = 0;
-
-        void DrawAST()
-        {
-            dotter::Dotter dotter;
-            Draw(dotter, 0);
-            dotter.print_dot_text();
-            dotter.render();
-        }
-    private:
+        virtual ~Node() = default;
+        inline virtual void Accept(NodeVisitor &visitor) = 0;
         Node_t type_;
     }; // class Node
 
-    class ExprNode : public Node 
-    {
-    public:
+    struct ExprNode : public Node {
         ExprNode(ExprNode_t type) : Node(Node_t::expr), type_(type) {}
-        int Execute() override = 0;
-    private:
+        inline void Accept(NodeVisitor &visitor) override = 0;
         ExprNode_t type_;
     }; // class ExprNode
 
-    class BinOpNode final : public ExprNode
-    {
-    public:
+    struct BinOpNode final : public ExprNode {
         BinOpNode(BinOpNode_t type, ExprNode *left, ExprNode *right) 
         : ExprNode(ExprNode_t::bin_op), type_(type), left_(left), right_(right) {}
-
-        int Execute() override {
-            int operand1 = left_->Execute(), operand2 = right_->Execute();
-
-            switch (type_) {
-                case BinOpNode_t::add:
-                    return operand1 + operand2;
-                case BinOpNode_t::sub:
-                    return operand1 - operand2;
-                case BinOpNode_t::mul:
-                    return operand1 * operand2;
-                case BinOpNode_t::div:
-                    return operand1 / operand2;
-            }
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
-            dotter.add_node(OpTexts.at(type_), id);
-            if (left_ != nullptr)
-            {
-                left_->Draw(dotter, id * 2 + 1);
-                dotter.add_link(id, id * 2 + 1);
-            }
-
-            if (right_ != nullptr)
-            {
-                right_->Draw(dotter, id * 2 + 2);
-                dotter.add_link(id, id * 2 + 2);
-            }
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         BinOpNode_t type_;
         ExprNode *left_, *right_;
     }; // class BinOpNode
 
-    class BinCompOpNode final : public ExprNode
-    {
-    public:
+    struct BinCompOpNode final : public ExprNode {
         BinCompOpNode(BinCompOpNode_t type, ExprNode *left, ExprNode *right) 
         : ExprNode(ExprNode_t::bin_comp_op), type_(type), left_(left), right_(right) {}
-        int Execute() override {
-            int operand1 = left_->Execute(), operand2 = right_->Execute();
-
-            switch (type_) {
-                case BinCompOpNode_t::equal:
-                    return operand1 == operand2;
-                case BinCompOpNode_t::not_equal:
-                    return operand1 != operand2;
-                case BinCompOpNode_t::greater:
-                    return operand1 >  operand2;
-                case BinCompOpNode_t::less:
-                    return operand1 <  operand2;
-                case BinCompOpNode_t::greater_or_equal:
-                    return operand1 >= operand2;
-                case BinCompOpNode_t::less_or_equal:
-                    return operand1 <= operand2;
-            }
-
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
-            dotter.add_node(OpTexts.at(type_), id);
-            if (left_ != nullptr)
-            {
-                left_->Draw(dotter, id * 2 + 1);
-                dotter.add_link(id, id * 2 + 1);
-            }
-
-            if (right_ != nullptr)
-            {
-                right_->Draw(dotter, id * 2 + 2);
-                dotter.add_link(id, id * 2 + 2);
-            }
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         BinCompOpNode_t type_;
         ExprNode *left_, *right_;
     }; // class BinCompOpNode
 
-    class NumberNode final : public ExprNode
+    struct NumberNode final : public ExprNode
     {
-    public:
         NumberNode(int number) : ExprNode(ExprNode_t::number), number_(number) {}
-
-        int Execute() override {
-            return number_;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::DIAMOND, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
-            dotter.add_node(std::to_string(number_), id);
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         int number_;
     }; // class NumberNode
 
-    class InputNode final : public ExprNode
+    struct InputNode final : public ExprNode
     {
-    public:
         InputNode() : ExprNode(ExprNode_t::input) {}
-
-        int Execute() override {
-            int input = 0;
-            std::cin >> input;
-            return input;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::TRIANGLE, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::YELLOW, dotter::COLORS::BLACK);
-            dotter.add_node("Input", id);
-        }
-
+        inline void Accept(NodeVisitor &visitor) override;
     }; // class InputNode
 
-    class VarNode final : public ExprNode
-    {
-    public:
+    struct VarNode final : public ExprNode {
         VarNode(const std::string &name) : ExprNode(ExprNode_t::var), name_(std::move(name)) {}
-        
-        int Execute() override {
-            return symTable::symbolTables.GetValue(name_);
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::DIAMOND, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::GREEN, dotter::COLORS::BLACK);
-            dotter.add_node(name_, id);
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         std::string name_;
     }; // class VarNode
 
-    class ScopeNode final : public Node
-    {
-    public:
+    struct ScopeNode final : public Node {
         ScopeNode() : Node(Node_t::scope), kids_(1) {}
-
+        inline void Accept(NodeVisitor &visitor) override;
         void AddStatement(Node *child) { kids_.push_back(child); }
-        
-        int Execute() override {
-            symTable::symbolTables.PushSymTable();
-            for (auto &statement : kids_) {
-                if (statement != nullptr)
-                    statement->Execute();
-            }
-            symTable::symbolTables.PopSymTable();
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::WHITE, dotter::COLORS::BLACK);
-            dotter.add_node("Scope", id);
-            for (size_t i = 0; i < kids_.size(); ++i)
-            {
-                if (kids_[i] == nullptr)
-                {
-                    continue;
-                }
-                kids_[i]->Draw(dotter, id + i * 20); /// TODO
-                dotter.add_link(id, id + i * 20);
-            }
-        }
-
-    private:
         std::vector<Node*> kids_;
     }; // class ScopeNode
 
-    class DeclNode final : public Node
-    {
-    public:
+    struct DeclNode final : public Node {
         DeclNode(const std::string &name) : Node(Node_t::decl), name_(std::move(name)) {}
-
-        int Execute() override {
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::GREEN, dotter::COLORS::BLACK);
-            dotter.add_node(name_, id);
-        }
-
-        std::string GetName() {
-            return name_;
-        }
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
+        std::string GetName() { return name_; }
         std::string name_;
     }; // class DeclNode
 
-    class CondNode final : public Node 
-    {
-    public:
+    struct CondNode final : public Node {
         CondNode(BinCompOpNode *predicat, ScopeNode *first, ScopeNode *second = nullptr) : Node(Node_t::cond), predicat_(predicat), first_(first), second_(second) {}
-
-        int Execute() override {
-            if (predicat_->Execute()) {
-                first_->Execute();
-            } else {
-                second_->Execute();
-            }
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
-            dotter.add_node("If", id);
-            if (predicat_ != nullptr)
-            {
-                predicat_->Draw(dotter, id * 2 + 1);
-                dotter.add_link(id, id * 2 + 1);
-            }
-
-            if (first_ != nullptr)
-            {
-                first_->Draw(dotter, id * 2 + 2);
-                dotter.add_link(id, id * 2 + 2);
-            }
-
-            if (second_ != nullptr)
-            {
-                second_->Draw(dotter, id * 2 + 3);
-                dotter.add_link(id, id * 2 + 3);
-            }
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         BinCompOpNode *predicat_;
         ScopeNode *first_;
         ScopeNode *second_;
     }; // class CondNode
 
-    class LoopNode final : public Node
-    {
-    public:
+    struct LoopNode final : public Node {
         LoopNode(BinCompOpNode *predicat, ScopeNode *scope) : Node(Node_t::loop), predicat_(predicat), scope_(scope) {}
-
-        int Execute() override {
-            while (predicat_->Execute()) {
-                scope_->Execute();
-            }
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
-            dotter.add_node("While", id);
-
-            if (predicat_ == nullptr)
-                std::terminate();
-
-            predicat_->Draw(dotter, id * 2 + 1);
-            dotter.add_link(id, id * 2 + 1);    
-
-            assert(scope_);
-            scope_->Draw(dotter, id * 2 + 2);
-            dotter.add_link(id, id * 2 + 2);
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         BinCompOpNode *predicat_;
         ScopeNode *scope_;
     }; // class LoopNode 
 
-    class AssignNode final : public Node
-    {
-    public:
+    struct AssignNode final : public Node {
         AssignNode(DeclNode *var, ExprNode *expr) : Node(Node_t::assign), var_(var), expr_(expr) {}
-
-        int Execute() override {
-            int result = expr_->Execute();
-            auto name = var_->GetName();
-            symTable::symbolTables.SetValue(name, result);
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
-            dotter.add_node("=", id);
-            if (var_ != nullptr)
-            {
-                var_->Draw(dotter, id * 2 + 1);
-                dotter.add_link(id, id * 2 + 1); 
-            }
-
-            if (expr_ != nullptr)
-            {
-                expr_->Draw(dotter, id * 2 + 2);
-                dotter.add_link(id, id * 2 + 2);
-            }
-        }
-        
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         DeclNode *var_;
         ExprNode *expr_;
     }; // class AssignNode
 
-    class OutputNode final : public Node
-    {
-    public:
+    struct OutputNode final : public Node {
         OutputNode(ExprNode *expr) : Node(Node_t::output), expr_(expr) {}
-
-        int Execute() override {
-            std::cout << expr_->Execute() << std::endl;
-            return 0;
-        }
-
-        void Draw(dotter::Dotter &dotter, int id) const override
-        {
-            dotter.set_node_style(dotter::NodeStyle::SHAPES::TRIANGLE, dotter::NodeStyle::STYLES::BOLD,
-                                  dotter::COLORS::BLACK, dotter::COLORS::YELLOW, dotter::COLORS::BLACK);
-            dotter.add_node("Output", id);
-            if (expr_ != nullptr)
-            {
-                expr_->Draw(dotter, id * 2 + 1);
-                dotter.add_link(id, id * 2 + 1);
-            }
-        }
-
-    private:
+        inline void Accept(NodeVisitor &visitor) override;
         ExprNode *expr_;
     }; // class OutputNode
 
+    class NodeVisitor {
+    public:
+        virtual ~NodeVisitor() = default;
+        virtual void visitBinOpNode(BinOpNode &node) = 0;
+        virtual void visitBinCompOpNode(BinCompOpNode &node) = 0;
+        virtual void visitNumberNode(NumberNode &node) = 0;
+        virtual void visitInputNode(InputNode &node) = 0;
+        virtual void visitVarNode(VarNode &node) = 0;
+        virtual void visitScopeNode(ScopeNode &node) = 0;
+        virtual void visitDeclNode(DeclNode &node) = 0;
+        virtual void visitCondNode(CondNode &node) = 0;
+        virtual void visitLoopNode(LoopNode &node) = 0;
+        virtual void visitAssignNode(AssignNode &node) = 0;
+        virtual void visitOutputNode(OutputNode &node) = 0;
+    }; // class NodeVisitor
+
+    inline void BinOpNode::Accept(NodeVisitor &visitor) {
+        visitor.visitBinOpNode(*this);
+    }
+
+    inline void BinCompOpNode::Accept(NodeVisitor &visitor) {
+        visitor.visitBinCompOpNode(*this);
+    }
+
+    inline void NumberNode::Accept(NodeVisitor &visitor) {
+        visitor.visitNumberNode(*this);
+    }
+
+    inline void InputNode::Accept(NodeVisitor &visitor) {
+        visitor.visitInputNode(*this);
+    }
+
+    inline void VarNode::Accept(NodeVisitor &visitor) {
+        visitor.visitVarNode(*this);
+    }
+
+    inline void ScopeNode::Accept(NodeVisitor &visitor) {
+        visitor.visitScopeNode(*this);
+    }
+
+    inline void DeclNode::Accept(NodeVisitor &visitor) {
+        visitor.visitDeclNode(*this);
+    }
+
+    inline void CondNode::Accept(NodeVisitor &visitor) {
+        visitor.visitCondNode(*this);
+    }
+
+    inline void LoopNode::Accept(NodeVisitor &visitor) {
+        visitor.visitLoopNode(*this);
+    }
+
+    inline void AssignNode::Accept(NodeVisitor &visitor) {
+        visitor.visitAssignNode(*this);
+    }
+
+    inline void OutputNode::Accept(NodeVisitor &visitor) {
+        visitor.visitOutputNode(*this);
+    }
 }; // namespace node

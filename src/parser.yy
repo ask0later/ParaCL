@@ -90,10 +90,10 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %nterm <node::ScopeNode*> StatementList
 %nterm <node::Node*> Statement
 
-%nterm <node::Node*> Assigment
-%nterm <node::Node*> Condition
+%nterm <node::AssignNode*> Assigment
+%nterm <node::CondNode*> Condition
 %nterm <node::ScopeNode*> Else
-%nterm <node::Node*> Loop
+%nterm <node::LoopNode*> Loop
 
 %nterm <node::ExprNode*> Expression
 %nterm <node::ExprNode*> Summand
@@ -119,22 +119,22 @@ StatementList: StatementList Statement {
     $1->AddStatement($2);
     $$ = $1;
 } | %empty {
-    $$ = new node::ScopeNode();
+    $$ = driver->template GetNode<node::ScopeNode>();
 };
 
 Statement: OUTPUT Expression SEMICOLON {
-    $$ = static_cast<node::Node*>(new node::OutputNode($2));
+    auto tmp = driver->template GetNode<node::OutputNode>($2);
+    $$ = static_cast<node::Node*>(tmp);
 } | Condition {
-    $$ = $1;
-}
-| Loop {
-    $$ = $1;
+    $$ = static_cast<node::Node*>($1);
+} | Loop {
+    $$ = static_cast<node::Node*>($1);
 } | Assigment SEMICOLON {
-    $$ = $1;
+    $$ = static_cast<node::Node*>($1);
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
-    $$ = static_cast<node::Node*>(new node::CondNode($3, $6, $8));
+    $$ = driver->template GetNode<node::CondNode>($3, $6, $8);
 };
 
 Else: ELSE LCURBRAC Scope RCURBRAC {
@@ -144,11 +144,11 @@ Else: ELSE LCURBRAC Scope RCURBRAC {
 };
 
 Loop : WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
-    $$ = static_cast<node::Node*>(new node::LoopNode($3, $6));
+    $$ = driver->template GetNode<node::LoopNode>($3, $6);
 };
 
 Predicat: Expression CompareOpetators Expression {
-    $$ = new node::BinCompOpNode($2, $1, $3);
+    $$ = driver->template GetNode<node::BinCompOpNode>($2, $1, $3);
 };
 
 CompareOpetators: EQUAL {
@@ -166,21 +166,26 @@ CompareOpetators: EQUAL {
 };
 
 Assigment: NAME ASSIGMENT Expression {
-    $$ = static_cast<node::Node*>(new node::AssignNode(new node::DeclNode($1), $3));
+    auto name = driver->template GetNode<node::DeclNode>($1);
+    $$ = driver->template GetNode<node::AssignNode>(name, $3);
 };
 
 Expression: Expression ADD Summand {
-    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::add, $1, $3));
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3);
+    $$ = static_cast<node::ExprNode*>(binop);
 } | Expression SUB Summand {
-    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::sub, $1, $3));
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3);
+    $$ = static_cast<node::ExprNode*>(binop);
 } | Summand {
     $$ = $1;  
 };
 
 Summand: Summand MULT Multiplier {
-    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::mul, $1, $3));
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3);
+    $$ = static_cast<node::ExprNode*>(binop);
 } | Summand DIV Multiplier {
-    $$ = static_cast<node::ExprNode*>(new node::BinOpNode(node::BinOpNode_t::div, $1, $3));
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3);
+    $$ = static_cast<node::ExprNode*>(binop);
 } | Multiplier {
     $$ = $1;
 };
@@ -192,11 +197,14 @@ Multiplier: LBRAC Expression RBRAC {
 };
 
 Terminals: NUMBER {
-    $$ = static_cast<node::ExprNode*>(new node::NumberNode($1));
+    auto number = driver->template GetNode<node::NumberNode>($1);
+    $$ = static_cast<node::ExprNode*>(number);
 } | NAME {
-    $$ = static_cast<node::ExprNode*>(new node::VarNode($1));
+    auto name = driver->template GetNode<node::VarNode>($1);
+    $$ = static_cast<node::ExprNode*>(name);
 } | INPUT {
-    $$ = static_cast<node::ExprNode*>(new node::InputNode());
+    auto input = driver->template GetNode<node::InputNode>();
+    $$ = static_cast<node::ExprNode*>(input);
 };
 
 %%

@@ -4,10 +4,10 @@
 int yyFlexLexer::yywrap() { return 1; }
 
 int main() {
-  FlexLexer *lexer = new yyFlexLexer;
-  yy::Driver driver(lexer);
-  driver.parse();
-  driver.DrawAST();
-  driver.Execute();
-  delete lexer;
+    FlexLexer *lexer = new yyFlexLexer;
+    yy::Driver driver(lexer);
+    driver.parse();
+    driver.DrawAST();
+    driver.Execute();
+    delete lexer;
 }
