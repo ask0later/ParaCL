@@ -4,8 +4,7 @@
  *  
  *  Scope -> StatementList 
  *  StatementList -> Statement StatementList | Empty
- *  Statement -> While | If | Assigment;
- *  Assigment -> Variable = Expression
+ *  Statement -> While | If | Assigment | SubScope;
  *
  *
  *  Expression -> Summand Operator Expression | Summand
@@ -16,6 +15,8 @@
  *
  *  While -> (Expression CompareOp Expression) Scope
  *  If -> (Expression CompareOp Expression) Scope | (Expression CompareOp Expression) Scope Scope 
+ *  Assigment -> Variable = Expression
+ *  SubScope -> Scope
  *
  *  CompareOp -> Equal | NotEqual | Less | Greater | EqualOrLess | EqualOrGreater
  *  Operator -> + | -
@@ -87,6 +88,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %token <std::string> NAME
 
 %nterm <node::ScopeNode*> Scope
+%nterm <node::ScopeNode*> SubScope
 %nterm <node::ScopeNode*> StatementList
 %nterm <node::Node*> Statement
 
@@ -131,6 +133,8 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = static_cast<node::Node*>($1);
 } | Assigment SEMICOLON {
     $$ = static_cast<node::Node*>($1);
+} | SubScope {
+    $$ = static_cast<node::Node*>($1);
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
@@ -143,9 +147,13 @@ Else: ELSE LCURBRAC Scope RCURBRAC {
     $$ = nullptr;
 };
 
-Loop : WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
+Loop: WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
     $$ = driver->template GetNode<node::LoopNode>($3, $6);
 };
+
+SubScope: LCURBRAC Scope RCURBRAC {
+    $$ = $2;
+}
 
 Predicat: Expression CompareOpetators Expression {
     $$ = driver->template GetNode<node::BinCompOpNode>($2, $1, $3);
