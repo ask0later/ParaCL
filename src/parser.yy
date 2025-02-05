@@ -118,7 +118,8 @@ Scope: StatementList {
 };
 
 StatementList: StatementList Statement {
-    $1->AddStatement($2);
+    if ($2)
+        $1->AddStatement($2);
     $$ = $1;
 } | %empty {
     $$ = driver->template GetNode<node::ScopeNode>();
