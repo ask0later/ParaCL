@@ -1,0 +1,12 @@
+a = 0;
+b = 1;
+c = 15;
+i = 2;
+while (i < c)
+{
+    tmp = b;
+    b = a + b;
+    a = tmp;
+    i = i + 1;
+    print(a);
+}
