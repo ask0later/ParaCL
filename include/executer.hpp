@@ -146,7 +146,6 @@ namespace executer {
         }
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
-            std::cerr << bool_param_ << std::endl;
             if (bool_param_) {
                 node.first_->Accept(*this);
             } else {
