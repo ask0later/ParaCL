@@ -121,11 +121,13 @@ StatementList: StatementList Statement {
     if ($2)
         $1->AddStatement($2);
     else {
-        std::string error_mes = "Syntax error, met '";
+        int num_line = driver->GetCurrentLineNumber();
+        std::string error_mes = "Syntax error, '";
         error_mes += driver->GetCurrentTokenText();
         error_mes += "' at line #";
-        error_mes += std::to_string(driver->GetCurrentLineNumber());
-        error_mes += ", but exepted another";
+        error_mes += std::to_string(num_line);
+        error_mes += ":\n";
+        error_mes += driver->program_text_[num_line - 1];
         throw std::logic_error(error_mes);
     }
 

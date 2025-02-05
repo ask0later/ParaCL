@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <optional>
 #include <exception>
+#include <limits>
 
 #include "node.hpp"
 
@@ -122,17 +123,21 @@ namespace executer {
                     return;
             }
         }
+
         void visitNumberNode(node::NumberNode &node) override {
             int_param_ = node.number_;
         }
+
         void visitInputNode(node::InputNode &node) override {
             int input = 0;
             std::cin >> input;
             int_param_ = input;
         }
+
         void visitVarNode(node::VarNode &node) override {
             int_param_ = symbolTables_.GetValue(node.name_);
         }
+
         void visitScopeNode(node::ScopeNode &node) override {
             symbolTables_.PushSymTable();
             for (auto &statement : node.kids_) {
@@ -141,9 +146,11 @@ namespace executer {
             }
             symbolTables_.PopSymTable();
         }
+
         void visitDeclNode(node::DeclNode &node) override {
             string_param_ = node.name_;
         }
+
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
             if (bool_param_) {
@@ -153,6 +160,7 @@ namespace executer {
                     node.second_->Accept(*this);
             }
         }
+
         void visitLoopNode(node::LoopNode &node) override {
             node.predicat_->Accept(*this);
             while (bool_param_) {
@@ -160,6 +168,7 @@ namespace executer {
                 node.predicat_->Accept(*this);
             }
         }
+
         void visitAssignNode(node::AssignNode &node) override {
             node.expr_->Accept(*this);
             int result = int_param_;
@@ -167,6 +176,7 @@ namespace executer {
             auto name = string_param_;
             symbolTables_.SetValue(name, result);
         }
+
         void visitOutputNode(node::OutputNode &node) override {
             node.expr_->Accept(*this);
             int res = int_param_; 

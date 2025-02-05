@@ -1,5 +1,6 @@
 #pragma once
 #include <FlexLexer.h>
+#include <vector>
 #include "executer.hpp"
 #include "drawer.hpp"
 #include "parser.tab.hh"
@@ -27,18 +28,24 @@ public:
         }
 
         if (tt == yy::parser::token_type::ERR) {
+            int num_line = GetCurrentLineNumber();
             std::string error_mes("Lexical error, unrecoginzed lexem: '");
             error_mes += GetCurrentTokenText();
             error_mes += "' at line #";
-            error_mes += std::to_string(GetCurrentLineNumber());
-            error_mes += "\n";  
+            error_mes += std::to_string(num_line);
+            error_mes += ":\n";
+            error_mes += program_text_[num_line - 1];
             throw std::logic_error(error_mes);
         }
 
         return tt;
     }
 
-    bool parse() {
+    bool parse(std::string &file_name) {
+        ReadFileToStrings(file_name);
+        std::ifstream input_file(file_name);
+        plex_->switch_streams(input_file, std::cout);
+
         parser parser(this);
         bool res = parser.parse();
         return !res;
@@ -78,15 +85,30 @@ public:
         return builder_.template GetObj<T>(args...);
     }
 
-    const char *GetCurrentTokenText() {
+    const char *GetCurrentTokenText() const {
         return plex_->YYText();
     }
 
-    int GetCurrentLineNumber() {
+    int GetCurrentLineNumber() const {
         return plex_->lineno();
     }
 
+    std::vector<std::string> program_text_;
 private:
+    void ReadFileToStrings(std::string &file_name) {
+        std::ifstream file(file_name);
+        if (!file.is_open())
+        {
+            throw std::invalid_argument("Can't open file");
+        }
+
+        std::string line;
+        while (std::getline(file, line))
+            program_text_.push_back(line);
+        
+        file.close();
+    }
+
     FlexLexer *plex_;
     node::Node *root_;
     node::details::Builder<node::Node> builder_;
