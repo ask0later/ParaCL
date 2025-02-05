@@ -17,20 +17,20 @@ public:
         parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
 
         if (tt == yy::parser::token_type::NUMBER) {
-            yylval->as<int>() = std::stoi(plex_->YYText());
+            yylval->as<int>() = std::stoi(GetCurrentTokenText());
         }
 
         if (tt == yy::parser::token_type::NAME) {
             parser::semantic_type tmp;
-            tmp.as<std::string>() = plex_->YYText();
+            tmp.as<std::string>() = GetCurrentTokenText();
             yylval->swap<std::string>(tmp);
         }
 
         if (tt == yy::parser::token_type::ERR) {
             std::string error_mes("Lexical error, unrecoginzed lexem: '");
-            error_mes += plex_->YYText();
+            error_mes += GetCurrentTokenText();
             error_mes += "' at line #";
-            error_mes += std::to_string(plex_->lineno());
+            error_mes += std::to_string(GetCurrentLineNumber());
             error_mes += "\n";  
             throw std::logic_error(error_mes);
         }
@@ -54,7 +54,15 @@ public:
 
     void Execute() {
         executer::ExecuteVisitor executer;
-        root_->Accept(executer);
+        try {
+            root_->Accept(executer);
+        } catch (std::runtime_error &run_time_ex) {
+            std::string error_mes = "Runtime error: ";
+            error_mes += run_time_ex.what();
+            error_mes += " at line #";
+            error_mes += std::to_string(GetCurrentLineNumber());
+            throw std::runtime_error(error_mes);
+        }
     }
 
     void DrawAST() {
@@ -68,6 +76,14 @@ public:
     template <typename T, typename... Args>
     T *GetNode(Args... args) {
         return builder_.template GetObj<T>(args...);
+    }
+
+    const char *GetCurrentTokenText() {
+        return plex_->YYText();
+    }
+
+    int GetCurrentLineNumber() {
+        return plex_->lineno();
     }
 
 private:

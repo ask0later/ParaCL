@@ -6,6 +6,7 @@
 #include "node.hpp"
 
 namespace executer {
+    constexpr size_t DEFAULT_NAME_COUNT = 32; 
     namespace symTable {
         class SymbolTable final {
         public:
@@ -28,21 +29,19 @@ namespace executer {
         class SymbolTables final {
         public:
             SymbolTables() {
-                symbolTables_.reserve(16);
+                symbolTables_.reserve(DEFAULT_NAME_COUNT);
             }
 
             void SetValue(std::string &name, int value) {
-                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it)
-                {
+                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
                     auto find = it->GetValue(name);
-                    if (find.has_value())
-                    {
+                    if (find.has_value()) {
                         it->SetOrAddValue(name, value);
                         return;
                     }
                 }
-                symbolTables_.back().SetOrAddValue(name, value); // ;(((
-            }
+                symbolTables_.back().SetOrAddValue(name, value);
+            } 
 
             int GetValue(std::string &name) {
                 for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
@@ -51,9 +50,10 @@ namespace executer {
                         return *find;
                 }
 
-                std::string res = name;
-                res += " was not declared in this scope."; // may be we must find it on compile time
-                throw std::logic_error(res);
+                std::string error_mes = "'";
+                error_mes += name;
+                error_mes += "' was not declared in this scope";
+                throw std::runtime_error(error_mes);
             }
 
             void PushSymTable() {
@@ -88,7 +88,7 @@ namespace executer {
                     return;
                 case node::BinOpNode_t::div:
                     if (operand2 == 0) {
-                        // runtime error
+                        throw std::runtime_error("Division by zero");
                     }
                     int_param_ = operand1 / operand2;
                     return;
