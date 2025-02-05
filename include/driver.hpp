@@ -15,7 +15,7 @@ public:
 
     parser::token_type yylex(parser::semantic_type *yylval) {
         parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
-        
+
         if (tt == yy::parser::token_type::NUMBER) {
             yylval->as<int>() = std::stoi(plex_->YYText());
         }
@@ -27,9 +27,12 @@ public:
         }
 
         if (tt == yy::parser::token_type::ERR) {
-            std::cout << "Lexical error, unrecoginzed lexem" << plex_->YYText() 
-                      << "' at line #" << plex_->lineno() << std::endl;
-            std::terminate();
+            std::string error_mes("Lexical error, unrecoginzed lexem: '");
+            error_mes += plex_->YYText();
+            error_mes += "' at line #";
+            error_mes += std::to_string(plex_->lineno());
+            error_mes += "\n";  
+            throw std::logic_error(error_mes);
         }
 
         return tt;

@@ -11,23 +11,21 @@ NUMBER      [1-9][0-9]*|0
 
 START_COMMENT   "/*"
 END_COMMENT     "*/"
-COMMENT "/*".*"*/"|"//".*
+COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 
 %%
-{WS}                { /* White spaces */
-                      /* skip blanks and tabs */ }
+{NUMBER}{NAME}      { return yy::parser::token_type::ERR; }
+
+{WS}                { /* White spaces
+                         skip blanks and tabs */ }
 {NL}                { /* skip new line */        }
+{COMMENT}           { /* skip text as a comment */ }
 
 "if"                { return yy::parser::token_type::IF;    }    
 "else"              { return yy::parser::token_type::ELSE;  }
 "while"             { return yy::parser::token_type::WHILE; }
 "?"                 { return yy::parser::token_type::INPUT; }
 "print"             { return yy::parser::token_type::OUTPUT; }
-
-
-
-{COMMENT}           { /* skip text as a comment */ }
-
 
 {NAME}              { return yy::parser::token_type::NAME; }
 {NUMBER}            { return yy::parser::token_type::NUMBER; }
@@ -56,6 +54,7 @@ COMMENT "/*".*"*/"|"//".*
 
 
 "="                 { return yy::parser::token_type::ASSIGMENT; }
+
 .                   { return yy::parser::token_type::ERR; }
 %%
 
