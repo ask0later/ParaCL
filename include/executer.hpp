@@ -71,6 +71,8 @@ namespace executer {
 
     class ExecuteVisitor final : public node::NodeVisitor {
     public:
+        ExecuteVisitor(std::vector<std::string> &program_text) : program_text_(program_text) {}
+
         void visitBinOpNode(node::BinOpNode &node) override {
             node.left_->Accept(*this);
             int operand1 = int_param_;
@@ -89,7 +91,10 @@ namespace executer {
                     return;
                 case node::BinOpNode_t::div:
                     if (operand2 == 0) {
-                        throw std::runtime_error("Division by zero");
+                        std::string msg = "Division by zero, at line #" +
+                                          std::to_string(node.info_.num_line_) + "\n" +
+                                          program_text_[node.info_.num_line_ - 1];
+                        throw std::runtime_error(msg);
                     }
                     int_param_ = operand1 / operand2;
                     return;
@@ -135,7 +140,17 @@ namespace executer {
         }
 
         void visitVarNode(node::VarNode &node) override {
-            int_param_ = symbolTables_.GetValue(node.name_);
+            try
+            {
+                int_param_ = symbolTables_.GetValue(node.name_);
+            }
+            catch(std::runtime_error& err)
+            {
+                std::string msg = err.what();
+                msg += ", at line #" + std::to_string(node.info_.num_line_) + "\n" +
+                                       program_text_[node.info_.num_line_ - 1];
+                throw std::runtime_error(msg);
+            }
         }
 
         void visitScopeNode(node::ScopeNode &node) override {
@@ -188,5 +203,6 @@ namespace executer {
         int int_param_ = 0;
         std::string string_param_;
         symTable::SymbolTables symbolTables_;
+        std::vector<std::string> &program_text_;
     }; // class ExecuteVisitor
 }

@@ -1,0 +1,2 @@
+Runtime error: Division by zero, at line #3
+print(b / a);

@@ -60,14 +60,12 @@ public:
     }
 
     void Execute() {
-        executer::ExecuteVisitor executer;
+        executer::ExecuteVisitor executer(program_text_);
         try {
             root_->Accept(executer);
         } catch (std::runtime_error &run_time_ex) {
             std::string error_mes = "Runtime error: ";
             error_mes += run_time_ex.what();
-            error_mes += " at line #";
-            error_mes += std::to_string(GetCurrentLineNumber());
             throw std::runtime_error(error_mes);
         }
     }
@@ -89,8 +87,8 @@ public:
         return plex_->YYText();
     }
 
-    int GetCurrentLineNumber() const {
-        return plex_->lineno();
+    size_t GetCurrentLineNumber() const {
+        return size_t(plex_->lineno());
     }
 
     std::vector<std::string> program_text_;
