@@ -1,13 +1,12 @@
 #pragma once
 #include <unordered_map>
 #include <optional>
+#include <exception>
 
 #include "node.hpp"
 
-
 namespace executer {
-    namespace symTable
-    {
+    namespace symTable {
         class SymbolTable final {
         public:
             void SetOrAddValue(std::string &name, int value) {
@@ -33,7 +32,7 @@ namespace executer {
             }
 
             void SetValue(std::string &name, int value) {
-                for (auto it = symbolTables_.rbegin(); it != symbolTables_.rend(); ++it)
+                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it)
                 {
                     auto find = it->GetValue(name);
                     if (find.has_value())
@@ -42,19 +41,19 @@ namespace executer {
                         return;
                     }
                 }
-                symbolTables_.back().SetOrAddValue(name, value);
+                symbolTables_.back().SetOrAddValue(name, value); // ;(((
             }
 
             int GetValue(std::string &name) {
-                for (auto it = symbolTables_.rbegin(); it != symbolTables_.rend(); ++it)
-                {
+                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
                     auto find = it->GetValue(name);
                     if (find.has_value())
                         return *find;
                 }
 
-                std::cout << "Unknown variable " << name << std::endl;
-                std::terminate();
+                std::string res = name;
+                res += " was not declared in this scope."; // may be we must find it on compile time
+                throw std::logic_error(res);
             }
 
             void PushSymTable() {
@@ -88,6 +87,9 @@ namespace executer {
                     int_param_ = operand1 * operand2;
                     return;
                 case node::BinOpNode_t::div:
+                    if (operand2 == 0) {
+                        // runtime error
+                    }
                     int_param_ = operand1 / operand2;
                     return;
             }
@@ -101,22 +103,22 @@ namespace executer {
 
             switch (node.type_) {
                 case node::BinCompOpNode_t::equal:
-                    bool_param_ = operand1 == operand2;
+                    bool_param_ = (operand1 == operand2);
                     return;
                 case node::BinCompOpNode_t::not_equal:
-                    bool_param_ = operand1 != operand2;
+                    bool_param_ = (operand1 != operand2);
                     return;
                 case node::BinCompOpNode_t::greater:
-                    bool_param_ = operand1 > operand2;
+                    bool_param_ = (operand1 > operand2);
                     return;
                 case node::BinCompOpNode_t::less:
-                    bool_param_ = operand1 < operand2;
+                    bool_param_ = (operand1 < operand2);
                     return;
                 case node::BinCompOpNode_t::greater_or_equal:
-                    bool_param_ = operand1 >= operand2;
+                    bool_param_ = (operand1 >= operand2);
                     return;
                 case node::BinCompOpNode_t::less_or_equal:
-                    bool_param_ = operand1 <= operand2;
+                    bool_param_ = (operand1 <= operand2);
                     return;
             }
         }
@@ -144,10 +146,12 @@ namespace executer {
         }
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
+            std::cerr << bool_param_ << std::endl;
             if (bool_param_) {
                 node.first_->Accept(*this);
             } else {
-                node.second_->Accept(*this);
+                if (node.second_)
+                    node.second_->Accept(*this);
             }
         }
         void visitLoopNode(node::LoopNode &node) override {
