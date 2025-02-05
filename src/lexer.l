@@ -1,4 +1,5 @@
 %option c++
+%option yylineno
 
 %{
 #include "parser.tab.hh"
