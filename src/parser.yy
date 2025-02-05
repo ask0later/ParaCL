@@ -24,7 +24,6 @@
  * ------------------------------------------------------------------------- */
 
 %language "c++"
-
 %skeleton "lalr1.cc"
 %defines
 %define api.value.type variant
@@ -39,6 +38,7 @@ namespace yy { class Driver; }
 
 %code
 {
+#include <exception>
 #include "node.hpp"
 #include "driver.hpp"
 
@@ -120,6 +120,15 @@ Scope: StatementList {
 StatementList: StatementList Statement {
     if ($2)
         $1->AddStatement($2);
+    else {
+        std::string error_mes = "Syntax error, met '";
+        error_mes += driver->GetCurrentTokenText();
+        error_mes += "' at line #";
+        error_mes += std::to_string(driver->GetCurrentLineNumber());
+        error_mes += ", but exepted another";
+        throw std::logic_error(error_mes);
+    }
+
     $$ = $1;
 } | %empty {
     $$ = driver->template GetNode<node::ScopeNode>();
@@ -136,6 +145,8 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = static_cast<node::Node*>($1);
 } | SubScope {
     $$ = static_cast<node::Node*>($1);
+} | error {
+    $$ = nullptr;
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
