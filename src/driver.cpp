@@ -14,9 +14,9 @@ int main(int argc, char* argv[])
 
     try {
         FlexLexer *lexer = new yyFlexLexer;
-        yy::Driver driver(lexer);
         std::string file_name(argv[1]);
-        driver.parse(file_name);
+        yy::Driver &driver = yy::Driver::QueryDriver(lexer, file_name);
+        driver.parse();
         driver.DrawAST();
         driver.Execute();
         delete lexer;
