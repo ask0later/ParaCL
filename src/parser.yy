@@ -120,16 +120,6 @@ Scope: StatementList {
 StatementList: StatementList Statement {
     if ($2)
         $1->AddStatement($2);
-    else {
-        int num_line = driver->GetCurrentLineNumber();
-        std::string error_mes = "Syntax error, '";
-        error_mes += driver->GetCurrentTokenText();
-        error_mes += "' at line #";
-        error_mes += std::to_string(num_line);
-        error_mes += ":\n";
-        error_mes += driver->program_text_[num_line - 1];
-        throw std::logic_error(error_mes);
-    }
 
     $$ = $1;
 } | %empty {
@@ -147,8 +137,6 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = static_cast<node::Node*>($1);
 } | SubScope {
     $$ = static_cast<node::Node*>($1);
-} | error {
-    $$ = nullptr;
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
@@ -239,5 +227,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
   return driver->yylex(yylval);
 }
 
-void parser::error(const std::string&){}
+void parser::error(const std::string&) {
+    throw std::logic_error(driver->GetFullErrorMessage("Syntax error", \
+                std::string("got '" + std::string(driver->GetCurrentTokenText()) + "'"), \
+                driver->GetCurrentLineNumber()));
+}
 }
