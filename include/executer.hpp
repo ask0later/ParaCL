@@ -4,6 +4,7 @@
 #include <exception>
 #include <limits>
 
+#include "error_handler.hpp"
 #include "node.hpp"
 
 namespace executer {
@@ -51,10 +52,7 @@ namespace executer {
                         return *find;
                 }
 
-                std::string error_mes = "'";
-                error_mes += name;
-                error_mes += "' was not declared in this scope";
-                throw std::runtime_error(error_mes);
+                throw std::runtime_error(name);
             }
 
             void PushSymTable() {
@@ -71,7 +69,7 @@ namespace executer {
 
     class ExecuteVisitor final : public node::NodeVisitor {
     public:
-        ExecuteVisitor(std::vector<std::string> &program_text) : program_text_(program_text) {}
+        ExecuteVisitor(err::ErrorHandler &err_handler) : err_handler_(err_handler) {}
 
         void visitBinOpNode(node::BinOpNode &node) override {
             node.left_->Accept(*this);
@@ -91,10 +89,9 @@ namespace executer {
                     return;
                 case node::BinOpNode_t::div:
                     if (operand2 == 0) {
-                        std::string msg = "Division by zero, at line #" +
-                                          std::to_string(node.info_.num_line_) + "\n" +
-                                          program_text_[node.info_.num_line_ - 1];
-                        throw std::runtime_error(msg);
+                        throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
+                                                                                "Division by zero", \
+                                                                                node.info_.GetNumLine()));
                     }
                     int_param_ = operand1 / operand2;
                     return;
@@ -140,16 +137,12 @@ namespace executer {
         }
 
         void visitVarNode(node::VarNode &node) override {
-            try
-            {
+            try {
                 int_param_ = symbolTables_.GetValue(node.name_);
-            }
-            catch(std::runtime_error& err)
-            {
-                std::string msg = err.what();
-                msg += ", at line #" + std::to_string(node.info_.num_line_) + "\n" +
-                                       program_text_[node.info_.num_line_ - 1];
-                throw std::runtime_error(msg);
+            } catch(std::runtime_error& ex) {
+                throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
+                            std::string("'" + std::string(ex.what()) + "' was not declared in this scope"), \
+                            node.info_.GetNumLine()));
             }
         }
 
@@ -203,6 +196,6 @@ namespace executer {
         int int_param_ = 0;
         std::string string_param_;
         symTable::SymbolTables symbolTables_;
-        std::vector<std::string> &program_text_;
+        err::ErrorHandler &err_handler_;
     }; // class ExecuteVisitor
 }
