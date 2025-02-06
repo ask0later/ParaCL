@@ -2,10 +2,13 @@
 #include <unordered_map>
 #include <optional>
 #include <exception>
+#include <limits>
 
+#include "error_handler.hpp"
 #include "node.hpp"
 
 namespace executer {
+    constexpr size_t DEFAULT_NAME_COUNT = 32; 
     namespace symTable {
         class SymbolTable final {
         public:
@@ -28,21 +31,19 @@ namespace executer {
         class SymbolTables final {
         public:
             SymbolTables() {
-                symbolTables_.reserve(16);
+                symbolTables_.reserve(DEFAULT_NAME_COUNT);
             }
 
             void SetValue(std::string &name, int value) {
-                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it)
-                {
+                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
                     auto find = it->GetValue(name);
-                    if (find.has_value())
-                    {
+                    if (find.has_value()) {
                         it->SetOrAddValue(name, value);
                         return;
                     }
                 }
-                symbolTables_.back().SetOrAddValue(name, value); // ;(((
-            }
+                symbolTables_.back().SetOrAddValue(name, value);
+            } 
 
             int GetValue(std::string &name) {
                 for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
@@ -51,9 +52,7 @@ namespace executer {
                         return *find;
                 }
 
-                std::string res = name;
-                res += " was not declared in this scope."; // may be we must find it on compile time
-                throw std::logic_error(res);
+                throw std::runtime_error(name);
             }
 
             void PushSymTable() {
@@ -70,6 +69,8 @@ namespace executer {
 
     class ExecuteVisitor final : public node::NodeVisitor {
     public:
+        ExecuteVisitor(err::ErrorHandler &err_handler) : err_handler_(err_handler) {}
+
         void visitBinOpNode(node::BinOpNode &node) override {
             node.left_->Accept(*this);
             int operand1 = int_param_;
@@ -88,7 +89,9 @@ namespace executer {
                     return;
                 case node::BinOpNode_t::div:
                     if (operand2 == 0) {
-                        // runtime error
+                        throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
+                                                                                "Division by zero", \
+                                                                                node.info_.GetNumLine()));
                     }
                     int_param_ = operand1 / operand2;
                     return;
@@ -122,17 +125,27 @@ namespace executer {
                     return;
             }
         }
+
         void visitNumberNode(node::NumberNode &node) override {
             int_param_ = node.number_;
         }
+
         void visitInputNode(node::InputNode &node) override {
             int input = 0;
             std::cin >> input;
             int_param_ = input;
         }
+
         void visitVarNode(node::VarNode &node) override {
-            int_param_ = symbolTables_.GetValue(node.name_);
+            try {
+                int_param_ = symbolTables_.GetValue(node.name_);
+            } catch(std::runtime_error& ex) {
+                throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
+                            std::string("'" + std::string(ex.what()) + "' was not declared in this scope"), \
+                            node.info_.GetNumLine()));
+            }
         }
+
         void visitScopeNode(node::ScopeNode &node) override {
             symbolTables_.PushSymTable();
             for (auto &statement : node.kids_) {
@@ -141,9 +154,11 @@ namespace executer {
             }
             symbolTables_.PopSymTable();
         }
+
         void visitDeclNode(node::DeclNode &node) override {
             string_param_ = node.name_;
         }
+
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
             if (bool_param_) {
@@ -153,6 +168,7 @@ namespace executer {
                     node.second_->Accept(*this);
             }
         }
+
         void visitLoopNode(node::LoopNode &node) override {
             node.predicat_->Accept(*this);
             while (bool_param_) {
@@ -160,6 +176,7 @@ namespace executer {
                 node.predicat_->Accept(*this);
             }
         }
+
         void visitAssignNode(node::AssignNode &node) override {
             node.expr_->Accept(*this);
             int result = int_param_;
@@ -167,6 +184,7 @@ namespace executer {
             auto name = string_param_;
             symbolTables_.SetValue(name, result);
         }
+
         void visitOutputNode(node::OutputNode &node) override {
             node.expr_->Accept(*this);
             int res = int_param_; 
@@ -178,5 +196,6 @@ namespace executer {
         int int_param_ = 0;
         std::string string_param_;
         symTable::SymbolTables symbolTables_;
+        err::ErrorHandler &err_handler_;
     }; // class ExecuteVisitor
 }

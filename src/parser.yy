@@ -24,7 +24,6 @@
  * ------------------------------------------------------------------------- */
 
 %language "c++"
-
 %skeleton "lalr1.cc"
 %defines
 %define api.value.type variant
@@ -39,6 +38,7 @@ namespace yy { class Driver; }
 
 %code
 {
+#include <exception>
 #include "node.hpp"
 #include "driver.hpp"
 
@@ -120,13 +120,14 @@ Scope: StatementList {
 StatementList: StatementList Statement {
     if ($2)
         $1->AddStatement($2);
+
     $$ = $1;
 } | %empty {
-    $$ = driver->template GetNode<node::ScopeNode>();
+    $$ = driver->template GetNode<node::ScopeNode>(driver->GetCurrentLineNumber());
 };
 
 Statement: OUTPUT Expression SEMICOLON {
-    auto tmp = driver->template GetNode<node::OutputNode>($2);
+    auto tmp = driver->template GetNode<node::OutputNode>($2, driver->GetCurrentLineNumber());
     $$ = static_cast<node::Node*>(tmp);
 } | Condition {
     $$ = static_cast<node::Node*>($1);
@@ -139,7 +140,7 @@ Statement: OUTPUT Expression SEMICOLON {
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
-    $$ = driver->template GetNode<node::CondNode>($3, $6, $8);
+    $$ = driver->template GetNode<node::CondNode>($3, $6, $8, driver->GetCurrentLineNumber());
 };
 
 Else: ELSE LCURBRAC Scope RCURBRAC {
@@ -149,7 +150,7 @@ Else: ELSE LCURBRAC Scope RCURBRAC {
 };
 
 Loop: WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
-    $$ = driver->template GetNode<node::LoopNode>($3, $6);
+    $$ = driver->template GetNode<node::LoopNode>($3, $6, driver->GetCurrentLineNumber());
 };
 
 SubScope: LCURBRAC Scope RCURBRAC {
@@ -157,7 +158,7 @@ SubScope: LCURBRAC Scope RCURBRAC {
 }
 
 Predicat: Expression CompareOpetators Expression {
-    $$ = driver->template GetNode<node::BinCompOpNode>($2, $1, $3);
+    $$ = driver->template GetNode<node::BinCompOpNode>($2, $1, $3, driver->GetCurrentLineNumber());
 };
 
 CompareOpetators: EQUAL {
@@ -175,25 +176,25 @@ CompareOpetators: EQUAL {
 };
 
 Assigment: NAME ASSIGMENT Expression {
-    auto name = driver->template GetNode<node::DeclNode>($1);
-    $$ = driver->template GetNode<node::AssignNode>(name, $3);
+    auto name = driver->template GetNode<node::DeclNode>($1, driver->GetCurrentLineNumber());
+    $$ = driver->template GetNode<node::AssignNode>(name, $3, driver->GetCurrentLineNumber());
 };
 
 Expression: Expression ADD Summand {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3);
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Expression SUB Summand {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3);
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Summand {
     $$ = $1;  
 };
 
 Summand: Summand MULT Multiplier {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3);
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Summand DIV Multiplier {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3);
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Multiplier {
     $$ = $1;
@@ -206,13 +207,13 @@ Multiplier: LBRAC Expression RBRAC {
 };
 
 Terminals: NUMBER {
-    auto number = driver->template GetNode<node::NumberNode>($1);
+    auto number = driver->template GetNode<node::NumberNode>($1, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(number);
 } | NAME {
-    auto name = driver->template GetNode<node::VarNode>($1);
+    auto name = driver->template GetNode<node::VarNode>($1, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(name);
 } | INPUT {
-    auto input = driver->template GetNode<node::InputNode>();
+    auto input = driver->template GetNode<node::InputNode>(driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(input);
 };
 
@@ -226,5 +227,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
   return driver->yylex(yylval);
 }
 
-void parser::error(const std::string&){}
+void parser::error(const std::string&) {
+    throw std::logic_error(driver->GetFullErrorMessage("Syntax error", \
+                std::string("got '" + std::string(driver->GetCurrentTokenText()) + "'"), \
+                driver->GetCurrentLineNumber()));
+}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <FlexLexer.h>
+#include <vector>
 #include "executer.hpp"
 #include "drawer.hpp"
 #include "parser.tab.hh"
@@ -7,38 +8,54 @@
 namespace yy {
 
 class Driver final {
-public:
-    Driver(FlexLexer *plex) : plex_(plex) {}
+    Driver(FlexLexer *plex, std::string &file_name) : 
+                plex_(plex), file_name_(file_name), err_handler_(err::ErrorHandler::QueryErrorHandler()) {
+        ParseFileToStrings(file_name, err_handler_.GetStrings());
+    }
+
     ~Driver() {
         builder_.Clean();
+    }
+public:
+    static Driver &QueryDriver(FlexLexer *plex, std::string &file_name) {
+        static Driver driver{plex, file_name};
+        return driver;
+    }
+
+    const char *GetCurrentTokenText() const {
+        return plex_->YYText();
+    }
+
+    size_t GetCurrentLineNumber() const {
+        return size_t(plex_->lineno());
     }
 
     parser::token_type yylex(parser::semantic_type *yylval) {
         parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
 
         if (tt == yy::parser::token_type::NUMBER) {
-            yylval->as<int>() = std::stoi(plex_->YYText());
+            yylval->as<int>() = std::stoi(GetCurrentTokenText());
         }
 
         if (tt == yy::parser::token_type::NAME) {
             parser::semantic_type tmp;
-            tmp.as<std::string>() = plex_->YYText();
+            tmp.as<std::string>() = GetCurrentTokenText();
             yylval->swap<std::string>(tmp);
         }
 
         if (tt == yy::parser::token_type::ERR) {
-            std::string error_mes("Lexical error, unrecoginzed lexem: '");
-            error_mes += plex_->YYText();
-            error_mes += "' at line #";
-            error_mes += std::to_string(plex_->lineno());
-            error_mes += "\n";  
-            throw std::logic_error(error_mes);
+            throw std::logic_error(err_handler_.GetFullErrorMessage("Lexical error, unrecoginzed lexem", \
+                                            std::string("'" + std::string(GetCurrentTokenText()) + "'"), \
+                                            GetCurrentLineNumber()));
         }
 
         return tt;
     }
 
     bool parse() {
+        std::ifstream input_file(file_name_);
+        plex_->switch_streams(input_file, std::cout);
+
         parser parser(this);
         bool res = parser.parse();
         return !res;
@@ -53,7 +70,7 @@ public:
     }
 
     void Execute() {
-        executer::ExecuteVisitor executer;
+        executer::ExecuteVisitor executer(err_handler_);
         root_->Accept(executer);
     }
 
@@ -70,9 +87,28 @@ public:
         return builder_.template GetObj<T>(args...);
     }
 
+    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) {
+        return err_handler_.GetFullErrorMessage(error_name, error_mes, line);
+    }
+
 private:
-    FlexLexer *plex_;
-    node::Node *root_;
+    void ParseFileToStrings(std::string &file_name, std::vector<std::string> &parsed_strings) {
+        std::ifstream file(file_name);
+        if (!file.is_open()) {
+            throw std::invalid_argument("Can't open file");
+        }
+
+        std::string line;
+        while (std::getline(file, line))
+            parsed_strings.push_back(line);
+        
+        file.close();
+    }
+
+    FlexLexer *plex_ = nullptr;
+    node::Node *root_ = nullptr;
     node::details::Builder<node::Node> builder_;
+    const std::string &file_name_;
+    err::ErrorHandler &err_handler_;
 };
 } // namespace yy
