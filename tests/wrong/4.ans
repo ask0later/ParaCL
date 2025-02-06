@@ -1,2 +1,2 @@
-Lexical error, unrecoginzed lexem: '246g' at line #2:
+Lexical error, unrecoginzed lexem: '246g', at line #2:
 b = a + 246g;

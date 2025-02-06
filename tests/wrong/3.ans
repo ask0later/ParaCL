@@ -1,2 +1,2 @@
-Syntax error, ')' at line #2:
+Syntax error: got ')', at line #2:
 if ()
