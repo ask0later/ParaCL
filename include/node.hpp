@@ -59,10 +59,12 @@ namespace node {
         input = 22
     };
 
-    struct NodeInfo {
+    class NodeInfo {
+    public:
         NodeInfo(size_t num_line) : num_line_(num_line) {}
-
-        size_t num_line_;
+        size_t GetNumLine() const { return num_line_; }
+    private:
+        size_t num_line_ = 0;
     };
 
     class NodeVisitor;
