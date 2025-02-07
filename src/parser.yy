@@ -137,6 +137,8 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = static_cast<node::Node*>($1);
 } | SubScope {
     $$ = static_cast<node::Node*>($1);
+} | SEMICOLON {
+    $$ = nullptr;
 };
 
 Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
