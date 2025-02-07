@@ -31,7 +31,11 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 {NAME}              { return yy::parser::token_type::NAME; }
 {NUMBER}            { return yy::parser::token_type::NUMBER; }
 
-"+"                 { /* Binary opetators */
+"&&"                { /* Logic operators */
+                      return yy::parser::token_type::LOGIC_AND; }
+"||"                { return yy::parser::token_type::LOGIC_OR; }
+
+"+"                 { /* Binary operators */
                       return yy::parser::token_type::ADD;       }
 "-"                 { return yy::parser::token_type::MINUS;     }
 "*"                 { return yy::parser::token_type::MULT;      }

@@ -72,6 +72,24 @@ namespace executer {
     public:
         ExecuteVisitor(err::ErrorHandler &err_handler) : err_handler_(err_handler) {}
 
+        void visitLogicOpNode(node::LogicOpNode &node) override {
+            assert(node.left_);
+            node.left_->Accept(*this);
+            int operand1 = param_;
+            assert(node.right_);
+            node.right_->Accept(*this);
+            int operand2 = param_;
+
+            switch (node.type_) {
+                case node::LogicOpNode_t::logic_and:
+                    param_ = operand1 && operand2;
+                    return;
+                case node::LogicOpNode_t::logic_or:
+                    param_ = operand1 || operand2;
+                    return;
+            }
+        }
+
         void visitUnOpNode(node::UnOpNode &node) override {
             assert(node.child_);
             node.child_->Accept(*this);
@@ -211,7 +229,6 @@ namespace executer {
             node.var_->Accept(*this);
             auto name = string_param_;
             symbolTables_.SetValue(name, result);
-            param_ = 1;
         }
 
         void visitOutputNode(node::OutputNode &node) override {

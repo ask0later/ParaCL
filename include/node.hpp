@@ -56,14 +56,20 @@ namespace node {
         less_or_equal = 19
     };
 
+    enum LogicOpNode_t {
+        logic_and = 20,
+        logic_or = 21
+    };
+
     enum ExprNode_t {
-        assign = 20,
-        un_op = 21,
-        bin_op = 22,
-        bin_comp_op = 23,
-        number = 24,
-        var = 25,
-        input = 26
+        assign = 22,
+        logic_op = 23,
+        un_op = 24,
+        bin_op = 25,
+        bin_comp_op = 26,
+        number = 27,
+        var = 28,
+        input = 29
     };
 
     class NodeInfo {
@@ -128,6 +134,15 @@ namespace node {
         ExprNode *expr_;
     }; // class OutputNode
 
+    struct LogicOpNode final : public ExprNode {
+        LogicOpNode(LogicOpNode_t type, ExprNode *left, ExprNode *right, size_t num_line) 
+        : ExprNode(ExprNode_t::logic_op, num_line), type_(type), left_(left), right_(right) {}
+        inline void Accept(NodeVisitor &visitor) override;
+        LogicOpNode_t type_;
+        ExprNode *left_;
+        ExprNode *right_;
+    }; // class LogicNode
+
     struct UnOpNode final : public ExprNode {
         UnOpNode(UnOpNode_t type, ExprNode *child, size_t num_line) 
         : ExprNode(ExprNode_t::un_op, num_line), type_(type), child_(child) {}
@@ -179,6 +194,7 @@ namespace node {
     class NodeVisitor {
     public:
         virtual ~NodeVisitor() = default;
+        virtual void visitLogicOpNode(LogicOpNode &node) = 0;
         virtual void visitUnOpNode(UnOpNode &node) = 0;
         virtual void visitBinOpNode(BinOpNode &node) = 0;
         virtual void visitBinCompOpNode(BinCompOpNode &node) = 0;
@@ -192,6 +208,10 @@ namespace node {
         virtual void visitAssignNode(AssignNode &node) = 0;
         virtual void visitOutputNode(OutputNode &node) = 0;
     }; // class NodeVisitor
+
+    inline void LogicOpNode::Accept(NodeVisitor &visitor) {
+        visitor.visitLogicOpNode(*this);
+    }
 
     inline void UnOpNode::Accept(NodeVisitor &visitor) {
         visitor.visitUnOpNode(*this);
