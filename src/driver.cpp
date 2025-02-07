@@ -6,8 +6,7 @@ int yyFlexLexer::yywrap() { return 1; }
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2)
-    {
+    if (argc < 2) {
         std::cout << "Choose program to execute" << std::endl;
         return 0;
     }
