@@ -29,15 +29,15 @@ namespace drawer {
             
             dotter_.AddNode(OpTexts.at(node.type_), reinterpret_cast<std::size_t>(std::addressof(node)));
 
-            if (node.left_ != nullptr) {
-                node.left_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.left_));
-            }
+            assert(node.left_);
+            node.left_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.left_));
 
-            if (node.right_ != nullptr) {
-                node.right_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.right_));
-            }
+            assert(node.right_);
+            node.right_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.right_));
         }
 
         void visitBinCompOpNode(node::BinCompOpNode &node) override {
@@ -45,31 +45,35 @@ namespace drawer {
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
             
             dotter_.AddNode(OpTexts.at(node.type_), reinterpret_cast<std::size_t>(std::addressof(node)));
-            if (node.left_ != nullptr) {
-                node.left_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.left_));
-            }
+            assert(node.left_);
+            node.left_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.left_));
 
-            if (node.right_ != nullptr) {
-                node.right_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.right_));
-            }
+            assert(node.right_);
+            node.right_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.right_));
         }
+
         void visitNumberNode(node::NumberNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::DIAMOND, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode(std::to_string(node.number_), reinterpret_cast<std::size_t>(std::addressof(node)));
         }
+
         void visitInputNode(node::InputNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::TRIANGLE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::YELLOW, dotter::COLORS::BLACK);
             dotter_.AddNode("Input", reinterpret_cast<std::size_t>(std::addressof(node)));
         }
+
         void visitVarNode(node::VarNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::DIAMOND, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::GREEN, dotter::COLORS::BLACK);
             dotter_.AddNode(node.name_, reinterpret_cast<std::size_t>(std::addressof(node)));
         }
+
         void visitScopeNode(node::ScopeNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::WHITE, dotter::COLORS::BLACK);
@@ -81,28 +85,31 @@ namespace drawer {
                 dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.kids_[i]));
             }
         }
+
         void visitDeclNode(node::DeclNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::GREEN, dotter::COLORS::BLACK);
             dotter_.AddNode(node.name_, reinterpret_cast<std::size_t>(std::addressof(node)));
         }
+
         void visitCondNode(node::CondNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode("If", reinterpret_cast<std::size_t>(std::addressof(node)));
-            if (node.predicat_ != nullptr) {
-                node.predicat_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.predicat_));
-            }
+            assert(node.predicat_);
+            node.predicat_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.predicat_));
 
-            if (node.first_ != nullptr) {
-                node.first_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.first_));
-            }
+            assert(node.first_);
+            node.first_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.first_));
 
-            if (node.second_ != nullptr) {
+            if (node.second_) {
                 node.second_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.second_));
+                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                                reinterpret_cast<std::size_t>(node.second_));
             }
         }
         
@@ -111,40 +118,42 @@ namespace drawer {
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode("While", reinterpret_cast<std::size_t>(std::addressof(node)));
 
-            if (node.predicat_ == nullptr)
-                std::terminate();
+            assert(node.predicat_);
             
             node.predicat_->Accept(*this);
-            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.predicat_));
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.predicat_));
 
             assert(node.scope_);
             node.scope_->Accept(*this);
-            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.scope_));
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.scope_));
         }
 
         void visitAssignNode(node::AssignNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode("=", reinterpret_cast<std::size_t>(std::addressof(node)));
-            if (node.var_ != nullptr) {
-                node.var_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.var_)); 
-            }
+            assert(node.var_);
+            node.var_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.var_)); 
 
-            if (node.expr_ != nullptr) {
-                node.expr_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.expr_));
-            }
+            assert(node.expr_);
+            node.expr_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.expr_));
         }
         
         void visitOutputNode(node::OutputNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::TRIANGLE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::YELLOW, dotter::COLORS::BLACK);
             dotter_.AddNode("Output", reinterpret_cast<std::size_t>(std::addressof(node)));
-            if (node.expr_ != nullptr) {
-                node.expr_->Accept(*this);
-                dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)), reinterpret_cast<std::size_t>(node.expr_));
-            }
+
+            assert(node.expr_);
+            node.expr_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.expr_));
         }
     private:
         dotter::Dotter &dotter_;
