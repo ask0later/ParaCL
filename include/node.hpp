@@ -72,19 +72,34 @@ namespace node {
         input = 29
     };
 
+    struct Location {
+        int start_line_;
+        int start_column_;
+        int end_line_;
+        int end_column_;
+
+        Location(int start_line = 0, int start_column = 0, int end_line = 0, int end_column = 0)
+                      : start_line_(start_line), start_column_(start_column),
+                        end_line_(end_line), end_column_(end_column) {}
+    };
+
     class NodeInfo {
     public:
-        NodeInfo(size_t num_line) : num_line_(num_line) {}
+        NodeInfo(size_t num_line, Location location) : num_line_(num_line), location_(location) {}
         size_t GetNumLine() const { return num_line_; }
+
+        Location location_;
     private:
         size_t num_line_ = 0;
+
     };
 
     class NodeVisitor;
 
     struct Node {
     public:
-        Node(Node_t type = no_type, size_t num_line = 0) : type_(type), info_(num_line) {} 
+        Node(Node_t type = no_type, size_t num_line = 0, Location location) :
+            type_(type), info_(num_line, location) {} 
         virtual ~Node() = default;
         inline virtual void Accept(NodeVisitor &visitor) = 0;
         Node_t type_;
