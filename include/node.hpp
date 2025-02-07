@@ -39,24 +39,25 @@ namespace node {
         add = 8,
         sub = 9,
         mul = 10,
-        div = 11
+        div = 11,
+        remainder = 12,
     };
 
     enum BinCompOpNode_t {
-        equal = 12,
-        not_equal = 13,
-        greater = 14,
-        less = 15,
-        greater_or_equal = 16,
-        less_or_equal = 17
+        equal = 13,
+        not_equal = 14,
+        greater = 15,
+        less = 16,
+        greater_or_equal = 17,
+        less_or_equal = 18
     };
 
     enum ExprNode_t {
-        bin_op = 18,
-        bin_comp_op = 19,
-        number = 20,
-        var = 21,
-        input = 22
+        bin_op = 19,
+        bin_comp_op = 20,
+        number = 21,
+        var = 22,
+        input = 23
     };
 
     class NodeInfo {

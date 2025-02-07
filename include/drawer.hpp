@@ -10,6 +10,7 @@ namespace drawer {
         { node::BinOpNode_t::sub, "-" },
         { node::BinOpNode_t::mul, "*" },
         { node::BinOpNode_t::div, "/" },
+        { node::BinOpNode_t::remainder, "%" },
 
         { node::BinCompOpNode_t::equal,            "==" },
         { node::BinCompOpNode_t::not_equal,        "!=" },

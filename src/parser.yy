@@ -54,6 +54,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
     SUB
     MULT
     DIV
+    REMAINDER
 
 /* Brackets and separetors */
     LBRAC
@@ -198,7 +199,10 @@ Summand: Summand MULT Multiplier {
 } | Summand DIV Multiplier {
     auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
-} | Multiplier {
+} | Summand REMAINDER Multiplier {
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::remainder, $1, $3, driver->GetCurrentLineNumber());
+    $$ = static_cast<node::ExprNode*>(binop);
+}| Multiplier {
     $$ = $1;
 };
 

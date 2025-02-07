@@ -32,10 +32,11 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 {NUMBER}            { return yy::parser::token_type::NUMBER; }
 
 "+"                 { /* Binary opetators */
-                      return yy::parser::token_type::ADD;  }
-"-"                 { return yy::parser::token_type::SUB;   }
-"*"                 { return yy::parser::token_type::MULT;  }
-"/"                 { return yy::parser::token_type::DIV;   }
+                      return yy::parser::token_type::ADD;       }
+"-"                 { return yy::parser::token_type::SUB;       }
+"*"                 { return yy::parser::token_type::MULT;      }
+"/"                 { return yy::parser::token_type::DIV;       }
+"%"                 { return yy::parser::token_type::REMAINDER; }
 
 
 "("                 { /* Brackets and separetors */

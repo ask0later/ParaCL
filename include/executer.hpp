@@ -98,6 +98,9 @@ namespace executer {
                     }
                     int_param_ = operand1 / operand2;
                     return;
+                case node::BinOpNode_t::remainder:
+                    int_param_ = operand1 % operand2;
+                    return;  
             }
         }
 
