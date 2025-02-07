@@ -69,12 +69,12 @@ public:
         return root_;
     }
 
-    void Execute() {
+    void Execute() const {
         executer::ExecuteVisitor executer(err_handler_);
         root_->Accept(executer);
     }
 
-    void DrawAST() {
+    void DrawAST() const {
         dotter::Dotter dotter;
         drawer::DrawVisitor drawer(dotter);
         root_->Accept(drawer);
@@ -87,12 +87,12 @@ public:
         return builder_.template GetObj<T>(args...);
     }
 
-    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) {
+    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) const {
         return err_handler_.GetFullErrorMessage(error_name, error_mes, line);
     }
 
 private:
-    void ParseFileToStrings(std::string &file_name, std::vector<std::string> &parsed_strings) {
+    void ParseFileToStrings(std::string &file_name, std::vector<std::string> &parsed_strings) const {
         std::ifstream file(file_name);
         if (!file.is_open()) {
             throw std::invalid_argument("Can't open file");

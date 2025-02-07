@@ -3,6 +3,7 @@
 #include <optional>
 #include <exception>
 #include <limits>
+#include <cassert>
 
 #include "error_handler.hpp"
 #include "node.hpp"
@@ -72,8 +73,10 @@ namespace executer {
         ExecuteVisitor(err::ErrorHandler &err_handler) : err_handler_(err_handler) {}
 
         void visitBinOpNode(node::BinOpNode &node) override {
+            assert(node.left_);
             node.left_->Accept(*this);
             int operand1 = int_param_;
+            assert(node.right_);
             node.right_->Accept(*this);
             int operand2 = int_param_;
 
@@ -99,8 +102,10 @@ namespace executer {
         }
 
         void visitBinCompOpNode(node::BinCompOpNode &node) override {
+            assert(node.left_);
             node.left_->Accept(*this);
             int operand1 = int_param_;
+            assert(node.right_);
             node.right_->Accept(*this);
             int operand2 = int_param_;
 
@@ -162,6 +167,7 @@ namespace executer {
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
             if (bool_param_) {
+                assert(node.first_);
                 node.first_->Accept(*this);
             } else {
                 if (node.second_)
@@ -170,7 +176,9 @@ namespace executer {
         }
 
         void visitLoopNode(node::LoopNode &node) override {
+            assert(node.predicat_);
             node.predicat_->Accept(*this);
+            assert(node.scope_);
             while (bool_param_) {
                 node.scope_->Accept(*this);
                 node.predicat_->Accept(*this);
@@ -178,14 +186,18 @@ namespace executer {
         }
 
         void visitAssignNode(node::AssignNode &node) override {
+            assert(node.expr_);
             node.expr_->Accept(*this);
             int result = int_param_;
+
+            assert(node.var_);
             node.var_->Accept(*this);
             auto name = string_param_;
             symbolTables_.SetValue(name, result);
         }
 
         void visitOutputNode(node::OutputNode &node) override {
+            assert(node.expr_);
             node.expr_->Accept(*this);
             int res = int_param_; 
             std::cout << res << std::endl;

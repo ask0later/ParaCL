@@ -13,7 +13,7 @@ public:
         return error_handler;
     }
 
-    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) {
+    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) const {
         return std::string(error_name + ": " + error_mes + ", at line #" + std::to_string(line) + ":\n" + strings_[line - 1]);
     }
 
