@@ -72,23 +72,37 @@ namespace executer {
     public:
         ExecuteVisitor(err::ErrorHandler &err_handler) : err_handler_(err_handler) {}
 
+        void visitUnOpNode(node::UnOpNode &node) override {
+            assert(node.child_);
+            node.child_->Accept(*this);
+
+            switch (node.type_) {
+                case node::UnOpNode_t::minus:
+                    param_ = - param_;
+                    return;
+                case node::UnOpNode_t::negation:
+                    param_ = !(param_);
+                    return;
+            }
+        }
+
         void visitBinOpNode(node::BinOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            int operand1 = int_param_;
+            int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
-            int operand2 = int_param_;
+            int operand2 = param_;
 
             switch (node.type_) {
                 case node::BinOpNode_t::add:
-                    int_param_ = operand1 + operand2;
+                    param_ = operand1 + operand2;
                     return;
                 case node::BinOpNode_t::sub:
-                    int_param_ = operand1 - operand2;
+                    param_ = operand1 - operand2;
                     return;
                 case node::BinOpNode_t::mul:
-                    int_param_ = operand1 * operand2;
+                    param_ = operand1 * operand2;
                     return;
                 case node::BinOpNode_t::div:
                     if (operand2 == 0) {
@@ -96,10 +110,10 @@ namespace executer {
                                                                                 "Division by zero", \
                                                                                 node.info_.GetNumLine()));
                     }
-                    int_param_ = operand1 / operand2;
+                    param_ = operand1 / operand2;
                     return;
                 case node::BinOpNode_t::remainder:
-                    int_param_ = operand1 % operand2;
+                    param_ = operand1 % operand2;
                     return;  
             }
         }
@@ -107,46 +121,46 @@ namespace executer {
         void visitBinCompOpNode(node::BinCompOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            int operand1 = int_param_;
+            int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
-            int operand2 = int_param_;
+            int operand2 = param_;
 
             switch (node.type_) {
                 case node::BinCompOpNode_t::equal:
-                    bool_param_ = (operand1 == operand2);
+                    param_ = (operand1 == operand2);
                     return;
                 case node::BinCompOpNode_t::not_equal:
-                    bool_param_ = (operand1 != operand2);
+                    param_ = (operand1 != operand2);
                     return;
                 case node::BinCompOpNode_t::greater:
-                    bool_param_ = (operand1 > operand2);
+                    param_ = (operand1 > operand2);
                     return;
                 case node::BinCompOpNode_t::less:
-                    bool_param_ = (operand1 < operand2);
+                    param_ = (operand1 < operand2);
                     return;
                 case node::BinCompOpNode_t::greater_or_equal:
-                    bool_param_ = (operand1 >= operand2);
+                    param_ = (operand1 >= operand2);
                     return;
                 case node::BinCompOpNode_t::less_or_equal:
-                    bool_param_ = (operand1 <= operand2);
+                    param_ = (operand1 <= operand2);
                     return;
             }
         }
 
         void visitNumberNode(node::NumberNode &node) override {
-            int_param_ = node.number_;
+            param_ = node.number_;
         }
 
         void visitInputNode(node::InputNode &node) override {
             int input = 0;
             std::cin >> input;
-            int_param_ = input;
+            param_ = input;
         }
 
         void visitVarNode(node::VarNode &node) override {
             try {
-                int_param_ = symbolTables_.GetValue(node.name_);
+                param_ = symbolTables_.GetValue(node.name_);
             } catch(std::runtime_error& ex) {
                 throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
                             std::string("'" + std::string(ex.what()) + "' was not declared in this scope"), \
@@ -169,7 +183,7 @@ namespace executer {
 
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
-            if (bool_param_) {
+            if (param_) {
                 assert(node.first_);
                 node.first_->Accept(*this);
             } else {
@@ -182,7 +196,7 @@ namespace executer {
             assert(node.predicat_);
             node.predicat_->Accept(*this);
             assert(node.scope_);
-            while (bool_param_) {
+            while (param_) {
                 node.scope_->Accept(*this);
                 node.predicat_->Accept(*this);
             }
@@ -191,24 +205,25 @@ namespace executer {
         void visitAssignNode(node::AssignNode &node) override {
             assert(node.expr_);
             node.expr_->Accept(*this);
-            int result = int_param_;
+            int result = param_;
 
             assert(node.var_);
             node.var_->Accept(*this);
             auto name = string_param_;
             symbolTables_.SetValue(name, result);
+            param_ = 1;
         }
 
         void visitOutputNode(node::OutputNode &node) override {
             assert(node.expr_);
             node.expr_->Accept(*this);
-            int res = int_param_; 
+            int res = param_; 
             std::cout << res << std::endl;
         }
 
     private:
-        bool bool_param_ = false;
-        int int_param_ = 0;
+        //bool bool_param_ = false;
+        int param_ = 0;
         std::string string_param_;
         symTable::SymbolTables symbolTables_;
         err::ErrorHandler &err_handler_;

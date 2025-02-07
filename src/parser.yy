@@ -51,7 +51,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %token
 /* Binary opetators */
     ADD
-    SUB
+    MINUS
     MULT
     DIV
     REMAINDER
@@ -72,6 +72,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
 /* I/O */
     INPUT
     OUTPUT
+
+/* Compare binary opetators */ 
+    NEGATION
 
 /* Compare binary opetators */
     EQUAL
@@ -103,8 +106,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %nterm <node::ExprNode*> Multiplier
 %nterm <node::ExprNode*> Terminals
 
+%nterm <node::ExprNode*> PredicatOrExpression
 %nterm <node::BinCompOpNode*> Predicat
-%nterm <node::BinCompOpNode_t> CompareOpetators
+%nterm <node::BinCompOpNode_t> CompareOperators
 
 %start program
 
@@ -127,7 +131,7 @@ StatementList: StatementList Statement {
     $$ = driver->template GetNode<node::ScopeNode>(driver->GetCurrentLineNumber());
 };
 
-Statement: OUTPUT Expression SEMICOLON {
+Statement: OUTPUT PredicatOrExpression SEMICOLON {
     auto tmp = driver->template GetNode<node::OutputNode>($2, driver->GetCurrentLineNumber());
     $$ = static_cast<node::Node*>(tmp);
 } | Condition {
@@ -142,7 +146,7 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = nullptr;
 };
 
-Condition: IF LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC Else {
+Condition: IF LBRAC PredicatOrExpression RBRAC LCURBRAC Scope RCURBRAC Else {
     $$ = driver->template GetNode<node::CondNode>($3, $6, $8, driver->GetCurrentLineNumber());
 };
 
@@ -152,7 +156,7 @@ Else: ELSE LCURBRAC Scope RCURBRAC {
     $$ = nullptr;
 };
 
-Loop: WHILE LBRAC Predicat RBRAC LCURBRAC Scope RCURBRAC {
+Loop: WHILE LBRAC PredicatOrExpression RBRAC LCURBRAC Scope RCURBRAC {
     $$ = driver->template GetNode<node::LoopNode>($3, $6, driver->GetCurrentLineNumber());
 };
 
@@ -160,11 +164,19 @@ SubScope: LCURBRAC Scope RCURBRAC {
     $$ = $2;
 }
 
-Predicat: Expression CompareOpetators Expression {
+Predicat: Expression CompareOperators Expression {
     $$ = driver->template GetNode<node::BinCompOpNode>($2, $1, $3, driver->GetCurrentLineNumber());
 };
 
-CompareOpetators: EQUAL {
+PredicatOrExpression: Assigment {
+    $$ = static_cast<node::ExprNode*>($1);
+} | Predicat {
+    $$ = static_cast<node::ExprNode*>($1);
+} | Expression {
+    $$ = $1;
+};
+
+CompareOperators: EQUAL {
     $$ = node::BinCompOpNode_t::equal;
 } | NOT_EQUAL {
     $$ = node::BinCompOpNode_t::not_equal;
@@ -186,7 +198,7 @@ Assigment: NAME ASSIGMENT Expression {
 Expression: Expression ADD Summand {
     auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
-} | Expression SUB Summand {
+} | Expression MINUS Summand {
     auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3, driver->GetCurrentLineNumber());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Summand {
@@ -206,8 +218,14 @@ Summand: Summand MULT Multiplier {
     $$ = $1;
 };
 
-Multiplier: LBRAC Expression RBRAC {
+Multiplier: LBRAC PredicatOrExpression RBRAC {
     $$ = $2;
+} | NEGATION Multiplier {
+    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::negation, $2, driver->GetCurrentLineNumber());
+    $$ = static_cast<node::ExprNode*>(unop);
+} | MINUS Multiplier {
+    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::minus, $2, driver->GetCurrentLineNumber());
+    $$ = static_cast<node::ExprNode*>(unop);
 } | Terminals {
     $$ = $1;
 };
