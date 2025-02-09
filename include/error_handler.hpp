@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "location.hpp"
 
 namespace err {
 
@@ -13,15 +14,15 @@ public:
         return error_handler;
     }
 
-    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) const {
-        return std::string(error_name + ": " + error_mes + ", at line #" + std::to_string(line) + ":\n" + strings_[line - 1]);
-    }
+    std::string GetFullErrorMessage(std::string error_name, \
+                                    std::string error_mes, \
+                                    const yy::Location &loc) const { 
+        auto mes = error_name + ": " + error_mes + ", at line #" + std::to_string(loc.GetStartLine()) + ":\n"; 
+        mes += (loc.GetCodeLine(loc.GetStartLine() - 1) + "\n");
+        mes += std::string(loc.GetStartColumn() - 1, ' ');
+        mes += std::string(loc.GetEndColumn() - loc.GetStartColumn(), '^');
 
-    std::vector<std::string> &GetStrings() {
-        return strings_;
+        return mes;
     }
-
-private:
-    std::vector<std::string> strings_;
 };
 } // namespace err

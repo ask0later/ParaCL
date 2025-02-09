@@ -1,6 +1,7 @@
 #pragma once 
 #include <vector>
 #include <string>
+#include "location.hpp"
 
 namespace node {
     namespace details {
@@ -72,64 +73,50 @@ namespace node {
         input = 29
     };
 
-    struct Location {
-        int start_line_;
-        int start_column_;
-        int end_line_;
-        int end_column_;
-
-        Location(int start_line = 0, int start_column = 0, int end_line = 0, int end_column = 0)
-                      : start_line_(start_line), start_column_(start_column),
-                        end_line_(end_line), end_column_(end_column) {}
-    };
-
     class NodeInfo {
     public:
-        NodeInfo(size_t num_line, Location location) : num_line_(num_line), location_(location) {}
-        size_t GetNumLine() const { return num_line_; }
+        NodeInfo(yy::Location location) : location_(location) {}
 
-        Location location_;
+        yy::Location &GetLocation() { return location_; }
     private:
-        size_t num_line_ = 0;
-
+        yy::Location location_;
     };
 
     class NodeVisitor;
 
     struct Node {
     public:
-        Node(Node_t type = no_type, size_t num_line = 0, Location location) :
-            type_(type), info_(num_line, location) {} 
+        Node(Node_t type, yy::Location location) :
+            type_(type), info_(location) {}
         virtual ~Node() = default;
         inline virtual void Accept(NodeVisitor &visitor) = 0;
         Node_t type_;
-
         NodeInfo info_;
     }; // class Node
 
     struct ExprNode : public Node {
-        ExprNode(ExprNode_t type, size_t num_line) : Node(Node_t::expr, num_line), type_(type) {}
+        ExprNode(ExprNode_t type, yy::Location location) : Node(Node_t::expr, location), type_(type) {}
         inline void Accept(NodeVisitor &visitor) override = 0;
         ExprNode_t type_;
     }; // class ExprNode
 
     struct ScopeNode final : public Node {
-        ScopeNode(size_t num_line) : Node(Node_t::scope, num_line), kids_(1) {}
+        ScopeNode(yy::Location location) : Node(Node_t::scope, location), kids_(1) {}
         inline void Accept(NodeVisitor &visitor) override;
         void AddStatement(Node *child) { kids_.push_back(child); }
         std::vector<Node*> kids_;
     }; // class ScopeNode
 
     struct DeclNode final : public Node {
-        DeclNode(const std::string &name, size_t num_line) : Node(Node_t::decl, num_line), name_(std::move(name)) {}
+        DeclNode(const std::string &name, yy::Location location) : Node(Node_t::decl, location), name_(std::move(name)) {}
         inline void Accept(NodeVisitor &visitor) override;
         std::string GetName() { return name_; }
         std::string name_;
     }; // class DeclNode
 
     struct CondNode final : public Node {
-        CondNode(ExprNode *predicat, ScopeNode *first, ScopeNode *second = nullptr, size_t num_line = 0) :
-            Node(Node_t::cond, num_line), predicat_(predicat), first_(first), second_(second) {}
+        CondNode(ExprNode *predicat, ScopeNode *first, ScopeNode *second, yy::Location location) :
+            Node(Node_t::cond, location), predicat_(predicat), first_(first), second_(second) {}
         inline void Accept(NodeVisitor &visitor) override;
         ExprNode *predicat_;
         ScopeNode *first_;
@@ -137,21 +124,21 @@ namespace node {
     }; // class CondNode
 
     struct LoopNode final : public Node {
-        LoopNode(ExprNode *predicat, ScopeNode *scope, size_t num_line) : Node(Node_t::loop, num_line), predicat_(predicat), scope_(scope) {}
+        LoopNode(ExprNode *predicat, ScopeNode *scope, yy::Location location) : Node(Node_t::loop, location), predicat_(predicat), scope_(scope) {}
         inline void Accept(NodeVisitor &visitor) override;
         ExprNode *predicat_;
         ScopeNode *scope_;
     }; // class LoopNode 
 
     struct OutputNode final : public Node {
-        OutputNode(ExprNode *expr, size_t num_line) : Node(Node_t::output, num_line), expr_(expr) {}
+        OutputNode(ExprNode *expr, yy::Location location) : Node(Node_t::output, location), expr_(expr) {}
         inline void Accept(NodeVisitor &visitor) override;
         ExprNode *expr_;
     }; // class OutputNode
 
     struct LogicOpNode final : public ExprNode {
-        LogicOpNode(LogicOpNode_t type, ExprNode *left, ExprNode *right, size_t num_line) 
-        : ExprNode(ExprNode_t::logic_op, num_line), type_(type), left_(left), right_(right) {}
+        LogicOpNode(LogicOpNode_t type, ExprNode *left, ExprNode *right, yy::Location location) 
+        : ExprNode(ExprNode_t::logic_op, location), type_(type), left_(left), right_(right) {}
         inline void Accept(NodeVisitor &visitor) override;
         LogicOpNode_t type_;
         ExprNode *left_;
@@ -159,48 +146,48 @@ namespace node {
     }; // class LogicNode
 
     struct UnOpNode final : public ExprNode {
-        UnOpNode(UnOpNode_t type, ExprNode *child, size_t num_line) 
-        : ExprNode(ExprNode_t::un_op, num_line), type_(type), child_(child) {}
+        UnOpNode(UnOpNode_t type, ExprNode *child, yy::Location location) 
+        : ExprNode(ExprNode_t::un_op, location), type_(type), child_(child) {}
         inline void Accept(NodeVisitor &visitor) override;
         UnOpNode_t type_;
         ExprNode *child_;
     }; // class UnOpNode
 
     struct BinOpNode final : public ExprNode {
-        BinOpNode(BinOpNode_t type, ExprNode *left, ExprNode *right, size_t num_line) 
-        : ExprNode(ExprNode_t::bin_op, num_line), type_(type), left_(left), right_(right) {}
+        BinOpNode(BinOpNode_t type, ExprNode *left, ExprNode *right, yy::Location location) 
+        : ExprNode(ExprNode_t::bin_op, location), type_(type), left_(left), right_(right) {}
         inline void Accept(NodeVisitor &visitor) override;
         BinOpNode_t type_;
         ExprNode *left_, *right_;
     }; // class BinOpNode
 
     struct BinCompOpNode final : public ExprNode {
-        BinCompOpNode(BinCompOpNode_t type, ExprNode *left, ExprNode *right, size_t num_line) 
-        : ExprNode(ExprNode_t::bin_comp_op, num_line), type_(type), left_(left), right_(right) {}
+        BinCompOpNode(BinCompOpNode_t type, ExprNode *left, ExprNode *right, yy::Location location) 
+        : ExprNode(ExprNode_t::bin_comp_op, location), type_(type), left_(left), right_(right) {}
         inline void Accept(NodeVisitor &visitor) override;
         BinCompOpNode_t type_;
         ExprNode *left_, *right_;
     }; // class BinCompOpNode
 
     struct NumberNode final : public ExprNode {
-        NumberNode(int number, size_t num_line) : ExprNode(ExprNode_t::number, num_line), number_(number) {}
+        NumberNode(int number, yy::Location location) : ExprNode(ExprNode_t::number, location), number_(number) {}
         inline void Accept(NodeVisitor &visitor) override;
         int number_;
     }; // class NumberNode
 
     struct InputNode final : public ExprNode {
-        InputNode(size_t num_line) : ExprNode(ExprNode_t::input, num_line) {}
+        InputNode(yy::Location location) : ExprNode(ExprNode_t::input, location) {}
         inline void Accept(NodeVisitor &visitor) override;
     }; // class InputNode
 
     struct VarNode final : public ExprNode {
-        VarNode(const std::string &name, size_t num_line) : ExprNode(ExprNode_t::var, num_line), name_(std::move(name)) {}
+        VarNode(const std::string &name, yy::Location location) : ExprNode(ExprNode_t::var, location), name_(std::move(name)) {}
         inline void Accept(NodeVisitor &visitor) override;
         std::string name_;
     }; // class VarNode
 
     struct AssignNode final : public ExprNode {
-        AssignNode(DeclNode *var, ExprNode *expr, size_t num_line) : ExprNode(ExprNode_t::assign, num_line), var_(var), expr_(expr) {}
+        AssignNode(DeclNode *var, ExprNode *expr, yy::Location location) : ExprNode(ExprNode_t::assign, location), var_(var), expr_(expr) {}
         inline void Accept(NodeVisitor &visitor) override;
         DeclNode *var_;
         ExprNode *expr_;

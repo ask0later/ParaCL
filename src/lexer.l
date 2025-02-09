@@ -1,20 +1,11 @@
 %option c++
-%option yylineno
-%option bison-locations
+%option yylineno noyywrap
+%option yyclass="yy::Lexer"
 
 %{
 #include "parser.tab.hh"
-#define YY_USER_ACTION \
-        yylloc->first_line = yylloc->last_line; \
-        yylloc->first_column = yylloc->last_column; \
-        for (int i = 0; yytext[i] != '\0'; i++) { \
-            if (yytext[i] == '\n') { \
-                yylloc->last_line++; \
-                yylloc->last_column = 0; \
-            } else { \
-                yylloc->last_column++; \
-            } \
-        }
+#include "lexer.hpp"
+#define YY_USER_ACTION UpdateTokenPosition();
 %}
 
 WS          [ \t\v]+
@@ -31,7 +22,9 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 
 {WS}                { /* White spaces
                          skip blanks and tabs */ }
-{NL}                { /* skip new line */        }
+"\n"                { /* skip new line */ 
+                      UpdateLine(); }
+
 {COMMENT}           { /* skip text as a comment */ }
 
 "if"                { return yy::parser::token_type::IF;    }    

@@ -75,9 +75,15 @@ namespace executer {
         void visitLogicOpNode(node::LogicOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
+            if (node.left_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
             int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
+            if (node.right_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
             int operand2 = param_;
 
             switch (node.type_) {
@@ -93,6 +99,9 @@ namespace executer {
         void visitUnOpNode(node::UnOpNode &node) override {
             assert(node.child_);
             node.child_->Accept(*this);
+            if (node.child_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
 
             switch (node.type_) {
                 case node::UnOpNode_t::minus:
@@ -107,9 +116,15 @@ namespace executer {
         void visitBinOpNode(node::BinOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
+            if (node.left_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
             int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
+            if (node.right_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
             int operand2 = param_;
 
             switch (node.type_) {
@@ -126,7 +141,7 @@ namespace executer {
                     if (operand2 == 0) {
                         throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
                                                                                 "Division by zero", \
-                                                                                node.info_.GetNumLine()));
+                                                                                node.info_.GetLocation()));
                     }
                     param_ = operand1 / operand2;
                     return;
@@ -139,9 +154,15 @@ namespace executer {
         void visitBinCompOpNode(node::BinCompOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
+            if (node.left_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
             int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
+            if (node.right_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
             int operand2 = param_;
 
             switch (node.type_) {
@@ -182,7 +203,7 @@ namespace executer {
             } catch(std::runtime_error& ex) {
                 throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
                             std::string("'" + std::string(ex.what()) + "' was not declared in this scope"), \
-                            node.info_.GetNumLine()));
+                            node.info_.GetLocation()));
             }
         }
 
@@ -223,12 +244,10 @@ namespace executer {
         void visitAssignNode(node::AssignNode &node) override {
             assert(node.expr_);
             node.expr_->Accept(*this);
-            int result = param_;
-
             assert(node.var_);
             node.var_->Accept(*this);
             auto name = string_param_;
-            symbolTables_.SetValue(name, result);
+            symbolTables_.SetValue(name, param_);
         }
 
         void visitOutputNode(node::OutputNode &node) override {
@@ -239,7 +258,6 @@ namespace executer {
         }
 
     private:
-        //bool bool_param_ = false;
         int param_ = 0;
         std::string string_param_;
         symTable::SymbolTables symbolTables_;
