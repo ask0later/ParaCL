@@ -27,30 +27,30 @@
 %skeleton "lalr1.cc"
 %defines
 %define api.value.type variant
+%locations
+%define api.location.file "location.hh"
+
 %param {yy::Driver* driver}
 
 %code requires
 {
-#include "node.hpp"
-// forward decl of argument to parser
-namespace yy { class Driver; }
+    #include "node.hpp"
+    // forward decl of argument to parser
+    namespace yy { 
+        class Driver; 
+    }
 }
 
 %code
 {
-#include <exception>
-#include "node.hpp"
-#include "driver.hpp"
+    #include <exception>
+    #include "node.hpp"
+    #include "driver.hpp"
 
-Location ToLocation(const YYLTYPE& loc) {
-    return Location(loc.first_line, loc.first_column,
-                    loc.last_line, loc.last_column);
-}
-
-namespace yy {
-parser::token_type yylex(parser::semantic_type* yylval,                         
+    namespace yy {
+        parser::token_type yylex(parser::semantic_type* yylval, parser::location_type* yylloc,
                          Driver* driver);
-}
+    }
 }
 
 %token
@@ -106,8 +106,8 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %nterm <node::Node*> Statement
 
 %nterm <node::AssignNode*> Assigment
-%nterm <node::CondNode*> Condition
 %nterm <node::ScopeNode*> Else
+%nterm <node::CondNode*> Condition
 %nterm <node::LoopNode*> Loop
 
 %nterm <node::ExprNode*> Expression
@@ -115,6 +115,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %nterm <node::ExprNode*> ssExpression
 %nterm <node::ExprNode*> sssExpression
 %nterm <node::ExprNode*> ssssExpression
+%nterm <node::ExprNode*> sssssExpression
 %nterm <node::ExprNode*> Summand
 %nterm <node::ExprNode*> Multiplier
 %nterm <node::ExprNode*> Terminals
@@ -157,13 +158,11 @@ StatementList: StatementList Statement {
 
     $$ = $1;
 } | %empty {
-    auto loc = ToLocation(@$);
-    $$ = driver->template GetNode<node::ScopeNode>(driver->GetCurrentLineNumber(), loc);
+    $$ = driver->template GetNode<node::ScopeNode>(driver->GetLocation());
 };
 
 Statement: OUTPUT Expression SEMICOLON {
-    auto loc = ToLocation(@$);
-    auto tmp = driver->template GetNode<node::OutputNode>($2, driver->GetCurrentLineNumber(), loc);
+    auto tmp = driver->template GetNode<node::OutputNode>($2, driver->GetLocation());
     $$ = static_cast<node::Node*>(tmp);
 } | Condition {
     $$ = static_cast<node::Node*>($1);
@@ -177,20 +176,18 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = nullptr;
 };
 
-Condition: IF LBRAC Expression RBRAC LCURBRAC Scope RCURBRAC Else {
-    auto loc = ToLocation(@$);
-    $$ = driver->template GetNode<node::CondNode>($3, $6, $8, driver->GetCurrentLineNumber(), loc);
-};
-
 Else: ELSE LCURBRAC Scope RCURBRAC {
     $$ = $3;
 } | %empty {
     $$ = nullptr;
 };
 
+Condition: IF LBRAC Expression RBRAC LCURBRAC Scope RCURBRAC Else {
+    $$ = driver->template GetNode<node::CondNode>($3, $6, $8, driver->GetLocation());
+};
+
 Loop: WHILE LBRAC Expression RBRAC LCURBRAC Scope RCURBRAC {
-    auto loc = ToLocation(@$);
-    $$ = driver->template GetNode<node::LoopNode>($3, $6, driver->GetCurrentLineNumber(), loc);
+    $$ = driver->template GetNode<node::LoopNode>($3, $6, driver->GetLocation());
 };
 
 SubScope: LCURBRAC Scope RCURBRAC {
@@ -198,76 +195,62 @@ SubScope: LCURBRAC Scope RCURBRAC {
 }
 
 Assigment: NAME ASSIGMENT Expression {
-    auto loc = ToLocation(@$);
-    auto name = driver->template GetNode<node::DeclNode>($1, driver->GetCurrentLineNumber(), loc);
-    $$ = driver->template GetNode<node::AssignNode>(name, $3, driver->GetCurrentLineNumber(), loc);
+    auto name = driver->template GetNode<node::DeclNode>($1, driver->GetLocation());
+    $$ = driver->template GetNode<node::AssignNode>(name, $3, driver->GetLocation());
 };
 
 Expression: Assigment {
     $$ = static_cast<node::ExprNode*>($1);
-} | Expression LOGIC_OR sExpression {
-    auto loc = ToLocation(@$);
-    auto logic_op = driver->template GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_or, $1, $3,
-                                                                driver->GetCurrentLineNumber(), loc);
-    $$ = static_cast<node::ExprNode*>(logic_op);
 } | sExpression {
     $$ = $1;
 };
 
-sExpression: sExpression LOGIC_AND ssExpression {
-    auto loc = ToLocation(@$);
-    auto logic_op = driver->template GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_and,
-                                                                $1, $3, driver->GetCurrentLineNumber(), loc);
+sExpression: sExpression LOGIC_OR ssExpression {
+    auto logic_op = driver->template GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_or, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(logic_op);
 } | ssExpression {
     $$ = $1;
 };
 
-ssExpression: ssExpression NotPriorityCompareOperators sssExpression {
-    auto loc = ToLocation(@$);
-    auto bin_op = driver->template GetNode<node::BinCompOpNode>($2, $1, $3,
-                                                                driver->GetCurrentLineNumber(), loc);
-    $$ = static_cast<node::ExprNode*>(bin_op);
+ssExpression: ssExpression LOGIC_AND sssExpression {
+    auto logic_op = driver->template GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_and, $1, $3, driver->GetLocation());
+    $$ = static_cast<node::ExprNode*>(logic_op);
 } | sssExpression {
     $$ = $1;
 };
 
-sssExpression: sssExpression PriorityCompareOperators ssssExpression {
-    auto loc = ToLocation(@$);
-    auto bin_op = driver->template GetNode<node::BinCompOpNode>($2, $1, $3,
-                                                                driver->GetCurrentLineNumber(), loc);
+sssExpression: sssExpression NotPriorityCompareOperators ssssExpression {
+    auto bin_op = driver->template GetNode<node::BinCompOpNode>($2, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(bin_op);
 } | ssssExpression {
     $$ = $1;
 };
 
-ssssExpression: ssssExpression ADD Summand {
-    auto loc = ToLocation(@$);
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3,
-                                                           driver->GetCurrentLineNumber(), loc);
+ssssExpression: ssssExpression PriorityCompareOperators sssssExpression {
+    auto bin_op = driver->template GetNode<node::BinCompOpNode>($2, $1, $3, driver->GetLocation());
+    $$ = static_cast<node::ExprNode*>(bin_op);
+} | sssssExpression {
+    $$ = $1;
+};
+
+sssssExpression: sssssExpression ADD Summand {
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(binop);
-} | ssssExpression MINUS Summand {
-    auto loc = ToLocation(@$);
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3,
-                                                           driver->GetCurrentLineNumber(), loc);
+} | sssssExpression MINUS Summand {
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Summand {
-    $$ = $1;  
+    $$ = $1;
 };
 
 Summand: Summand MULT Multiplier {
-    auto loc = ToLocation(@$);
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3,
-                                                           driver->GetCurrentLineNumber(), loc);
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Summand DIV Multiplier {
-    auto loc = ToLocation(@$);
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3,
-                                                           driver->GetCurrentLineNumber(), loc);
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Summand REMAINDER Multiplier {
-    auto loc = ToLocation(@$);
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::remainder, $1, $3, driver->GetCurrentLineNumber());
+    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::remainder, $1, $3, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(binop);
 } | Multiplier {
     $$ = $1;
@@ -276,30 +259,23 @@ Summand: Summand MULT Multiplier {
 Multiplier: LBRAC Expression RBRAC {
     $$ = $2;
 } | NEGATION Multiplier {
-    auto loc = ToLocation(@$);
-    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::negation, $2,
-                                                         driver->GetCurrentLineNumber(), loc);
+    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::negation, $2, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(unop);
 } | MINUS Multiplier {
-    auto loc = ToLocation(@$);
-    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::minus, $2,
-                                                         driver->GetCurrentLineNumber(), loc);
+    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::minus, $2, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(unop);
 } | Terminals {
     $$ = $1;
 };
 
 Terminals: NUMBER {
-    auto loc = ToLocation(@$);
-    auto number = driver->template GetNode<node::NumberNode>($1, driver->GetCurrentLineNumber(), loc);
+    auto number = driver->template GetNode<node::NumberNode>($1, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(number);
 } | NAME {
-    auto loc = ToLocation(@$);
-    auto name = driver->template GetNode<node::VarNode>($1, driver->GetCurrentLineNumber(), loc);
+    auto name = driver->template GetNode<node::VarNode>($1, driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(name);
 } | INPUT {
-    auto loc = ToLocation(@$);
-    auto input = driver->template GetNode<node::InputNode>(driver->GetCurrentLineNumber(), loc);
+    auto input = driver->template GetNode<node::InputNode>(driver->GetLocation());
     $$ = static_cast<node::ExprNode*>(input);
 };
 
@@ -307,15 +283,12 @@ Terminals: NUMBER {
 
 namespace yy {
 
-parser::token_type yylex(parser::semantic_type* yylval,                         
-                         Driver* driver)
-{
+parser::token_type yylex(parser::semantic_type* yylval, parser::location_type* yylloc,
+                         Driver* driver) {
   return driver->yylex(yylval);
 }
 
-void parser::error(const std::string&) {
-    throw std::logic_error(driver->GetFullErrorMessage("Syntax error", \
-                std::string("got '" + std::string(driver->GetCurrentTokenText()) + "'"), \
-                driver->GetCurrentLineNumber()));
+void parser::error(const location_type& loc, const std::string&) {
+    throw std::runtime_error(std::string("got '" + std::string(driver->GetCurrentTokenText()) + "'"));
 }
 }
