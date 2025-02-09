@@ -1,8 +1,11 @@
 %option c++
-%option yylineno
+%option yylineno noyywrap
+%option yyclass="yy::Lexer"
 
 %{
 #include "parser.tab.hh"
+#include "lexer.hpp"
+#define YY_USER_ACTION UpdateTokenPosition();
 %}
 
 WS          [ \t\v]+
@@ -19,7 +22,9 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 
 {WS}                { /* White spaces
                          skip blanks and tabs */ }
-{NL}                { /* skip new line */        }
+"\n"                { /* skip new line */ 
+                      UpdateLine(); }
+
 {COMMENT}           { /* skip text as a comment */ }
 
 "if"                { return yy::parser::token_type::IF;    }    
@@ -31,11 +36,16 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 {NAME}              { return yy::parser::token_type::NAME; }
 {NUMBER}            { return yy::parser::token_type::NUMBER; }
 
-"+"                 { /* Binary opetators */
-                      return yy::parser::token_type::ADD;  }
-"-"                 { return yy::parser::token_type::SUB;   }
-"*"                 { return yy::parser::token_type::MULT;  }
-"/"                 { return yy::parser::token_type::DIV;   }
+"&&"                { /* Logic operators */
+                      return yy::parser::token_type::LOGIC_AND; }
+"||"                { return yy::parser::token_type::LOGIC_OR; }
+
+"+"                 { /* Binary operators */
+                      return yy::parser::token_type::ADD;       }
+"-"                 { return yy::parser::token_type::MINUS;     }
+"*"                 { return yy::parser::token_type::MULT;      }
+"/"                 { return yy::parser::token_type::DIV;       }
+"%"                 { return yy::parser::token_type::REMAINDER; }
 
 
 "("                 { /* Brackets and separetors */
@@ -45,7 +55,7 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 "}"                 { return yy::parser::token_type::RCURBRAC;  }
 ";"                 { return yy::parser::token_type::SEMICOLON; }
 
-"=="                { /* Compare bunary opetators */
+"=="                { /* Compare binary opetators */
                       return yy::parser::token_type::EQUAL;     }
 "!="                { return yy::parser::token_type::NOT_EQUAL; }
 ">"                 { return yy::parser::token_type::GREATER;   }
@@ -53,6 +63,8 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 ">="                { return yy::parser::token_type::GREATER_OR_EQUAL;  }
 "<="                { return yy::parser::token_type::LESS_OR_EQUAL;     }
 
+"!"                 { /* Compare unary opetators */
+                      return yy::parser::token_type::NEGATION;  } 
 
 "="                 { return yy::parser::token_type::ASSIGMENT; }
 

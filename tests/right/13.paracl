@@ -1,0 +1,6 @@
+z = (y = 1) + 1;
+print z;
+print y;
+z = y = 6;
+print z;
+print y;

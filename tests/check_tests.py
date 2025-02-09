@@ -3,7 +3,7 @@ from sys import executable
 
 num_test = 1
 is_ok = True
-for i in range(1, 8):
+for i in range(1, 15):
     print("Right tests:")
     str_data =  "tests/right/" + str(i) + ".paracl"
     str_ans = "tests/right/" + str(i) + ".ans"

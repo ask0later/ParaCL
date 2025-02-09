@@ -1,2 +1,3 @@
 Syntax error: got 'print', at line #3:
 print(a);
+^^^^^

@@ -6,11 +6,18 @@
 
 namespace drawer {
     const static std::map<int, std::string> OpTexts = {
-        { node::BinOpNode_t::add, "+" },
-        { node::BinOpNode_t::sub, "-" },
-        { node::BinOpNode_t::mul, "*" },
-        { node::BinOpNode_t::div, "/" },
+        { node::BinOpNode_t::add,       "+" },
+        { node::BinOpNode_t::sub,       "-" },
+        { node::BinOpNode_t::mul,       "*" },
+        { node::BinOpNode_t::div,       "/" },
+        { node::BinOpNode_t::remainder, "%" },
 
+        { node::UnOpNode_t::minus,                 "-"  },
+        { node::UnOpNode_t::negation,              "!"  },
+        
+        { node::LogicOpNode_t::logic_and,          "&&" },
+        { node::LogicOpNode_t::logic_or,           "||" },
+        
         { node::BinCompOpNode_t::equal,            "==" },
         { node::BinCompOpNode_t::not_equal,        "!=" },
         { node::BinCompOpNode_t::greater,          ">"  },
@@ -21,8 +28,37 @@ namespace drawer {
 
     class DrawVisitor final : public node::NodeVisitor {
     public:
-        DrawVisitor(dotter::Dotter &dotter) : dotter_(dotter) { }
+        DrawVisitor(dotter::Dotter &dotter) : dotter_(dotter) {}
+
+        void visitLogicOpNode(node::LogicOpNode &node) override {
+            dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
+                                  dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
+            
+            dotter_.AddNode(OpTexts.at(node.type_), reinterpret_cast<std::size_t>(std::addressof(node)));
+
+            assert(node.left_);
+            node.left_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.left_));
+
+            assert(node.right_);
+            node.right_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.right_));
+        }
         
+        void visitUnOpNode(node::UnOpNode &node) override {
+            dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
+                                  dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
+            
+            dotter_.AddNode(OpTexts.at(node.type_), reinterpret_cast<std::size_t>(std::addressof(node)));
+
+            assert(node.child_);
+            node.child_->Accept(*this);
+            dotter_.AddLink(reinterpret_cast<std::size_t>(std::addressof(node)),
+                            reinterpret_cast<std::size_t>(node.child_));
+        }
+
         void visitBinOpNode(node::BinOpNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);

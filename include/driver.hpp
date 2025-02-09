@@ -1,6 +1,8 @@
 #pragma once
-#include <FlexLexer.h>
 #include <vector>
+
+#include "error_handler.hpp"
+#include "lexer.hpp"
 #include "executer.hpp"
 #include "drawer.hpp"
 #include "parser.tab.hh"
@@ -8,30 +10,36 @@
 namespace yy {
 
 class Driver final {
-    Driver(FlexLexer *plex, std::string &file_name) : 
-                plex_(plex), file_name_(file_name), err_handler_(err::ErrorHandler::QueryErrorHandler()) {
-        ParseFileToStrings(file_name, err_handler_.GetStrings());
-    }
+    Driver(std::string &file_name) : file_name_(file_name), lex_(yy::Lexer::QueryLexer(file_name)), err_handler_(err::ErrorHandler::QueryErrorHandler()) {}
 
     ~Driver() {
         builder_.Clean();
     }
 public:
-    static Driver &QueryDriver(FlexLexer *plex, std::string &file_name) {
-        static Driver driver{plex, file_name};
+    static Driver &QueryDriver(std::string &file_name) {
+        static Driver driver{file_name};
         return driver;
     }
 
     const char *GetCurrentTokenText() const {
-        return plex_->YYText();
+        return lex_.YYText();
     }
 
     size_t GetCurrentLineNumber() const {
-        return size_t(plex_->lineno());
+        return size_t(lex_.lineno());
+    }
+
+    template <typename T, typename... Args>
+    T *GetNode(Args... args) {
+        return builder_.template GetObj<T>(args...);
+    }
+
+    const Location &GetLocation() const {
+        return lex_.GetLocation();
     }
 
     parser::token_type yylex(parser::semantic_type *yylval) {
-        parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
+        parser::token_type tt = static_cast<parser::token_type>(lex_.yylex());
 
         if (tt == yy::parser::token_type::NUMBER) {
             yylval->as<int>() = std::stoi(GetCurrentTokenText());
@@ -45,8 +53,8 @@ public:
 
         if (tt == yy::parser::token_type::ERR) {
             throw std::logic_error(err_handler_.GetFullErrorMessage("Lexical error, unrecoginzed lexem", \
-                                            std::string("'" + std::string(GetCurrentTokenText()) + "'"), \
-                                            GetCurrentLineNumber()));
+                                    std::string("'" + std::string(GetCurrentTokenText()) + "'"), \
+                                    GetLocation()));
         }
 
         return tt;
@@ -54,10 +62,18 @@ public:
 
     bool parse() {
         std::ifstream input_file(file_name_);
-        plex_->switch_streams(input_file, std::cout);
+        lex_.switch_streams(input_file, std::cout);
+        
+        bool res = false; 
+        try {
+            parser parser(this);
+            res = parser.parse();
+        } catch (std::runtime_error &ex) {
+            throw std::runtime_error(err_handler_.GetFullErrorMessage("Syntax error", \
+                                                                        ex.what(), \
+                                                                        GetLocation()));
+        }
 
-        parser parser(this);
-        bool res = parser.parse();
         return !res;
     }
 
@@ -82,30 +98,8 @@ public:
         dotter.Render();
     }
 
-    template <typename T, typename... Args>
-    T *GetNode(Args... args) {
-        return builder_.template GetObj<T>(args...);
-    }
-
-    std::string GetFullErrorMessage(std::string error_name, std::string error_mes, size_t line) const {
-        return err_handler_.GetFullErrorMessage(error_name, error_mes, line);
-    }
-
 private:
-    void ParseFileToStrings(std::string &file_name, std::vector<std::string> &parsed_strings) const {
-        std::ifstream file(file_name);
-        if (!file.is_open()) {
-            throw std::invalid_argument("Can't open file");
-        }
-
-        std::string line;
-        while (std::getline(file, line))
-            parsed_strings.push_back(line);
-        
-        file.close();
-    }
-
-    FlexLexer *plex_ = nullptr;
+    yy::Lexer &lex_;
     node::Node *root_ = nullptr;
     node::details::Builder<node::Node> builder_;
     const std::string &file_name_;
