@@ -5,6 +5,7 @@
 namespace yy {
     class Location final : public location {
     public:
+        Location() : location() {}
         Location(std::string &file_name) : location() {
             std::ifstream file(file_name);
             if (!file.is_open()) {
