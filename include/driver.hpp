@@ -38,7 +38,7 @@ public:
         return lex_.GetLocation();
     }
 
-    parser::token_type yylex(parser::semantic_type *yylval) {
+    parser::token_type yylex(parser::semantic_type *yylval, Location *loc) {
         parser::token_type tt = static_cast<parser::token_type>(lex_.yylex());
 
         if (tt == yy::parser::token_type::NUMBER) {
@@ -57,6 +57,8 @@ public:
                                     GetLocation()));
         }
 
+        *loc = lex_.GetLocation();
+        
         return tt;
     }
 
