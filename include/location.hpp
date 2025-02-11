@@ -1,12 +1,15 @@
 #pragma once
 #include <fstream>
-#include "location.hh"
 
 namespace yy {
-    class Location final : public location {
+    struct Location final {
+        struct Position final {
+            int line = 1;
+            int column = 1;
+        }; // struct Position
     public:
-        Location() : location() {}
-        Location(std::string &file_name) : location() {
+        Location() {}
+        Location(std::string &file_name) {
             std::ifstream file(file_name);
             if (!file.is_open()) {
                 throw std::invalid_argument("Can't open file");
@@ -19,25 +22,24 @@ namespace yy {
             file.close();
         }
 
-        int GetStartLine() const {
-            return begin.line;
+        void Step() {
+            begin = end;
         }
 
-        int GetStartColumn() const {
-            return begin.column;
+        void Columns(int count = 1) {
+            end.column += count;
         }
 
-        int GetEndLine() const {
-            return end.line;
-        }
-
-        int GetEndColumn() const {
-            return end.column;
+        void Lines(int count = 1) {
+            end.line += count;
         }
         
         const std::string &GetCodeLine(size_t line_num) const {
             return code_lines_[line_num];
         }
+
+        Position begin;
+        Position end;
     private:
         inline static std::vector<std::string> code_lines_{};
     }; // class Location

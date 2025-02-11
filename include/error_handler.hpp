@@ -17,10 +17,10 @@ public:
     std::string GetFullErrorMessage(std::string error_name, \
                                     std::string error_mes, \
                                     const yy::Location &loc) const { 
-        auto mes = error_name + ": " + error_mes + ", at line #" + std::to_string(loc.GetStartLine()) + ":\n"; 
-        mes += (loc.GetCodeLine(loc.GetStartLine() - 1) + "\n");
-        mes += std::string(loc.GetStartColumn() - 1, ' ');
-        mes += std::string(loc.GetEndColumn() - loc.GetStartColumn(), '^');
+        auto mes = error_name + ": " + error_mes + ", at line #" + std::to_string(loc.begin.line) + ":\n"; 
+        mes += (loc.GetCodeLine(loc.begin.line - 1) + "\n");
+        mes += std::string(loc.begin.column - 1, ' ');
+        mes += std::string(loc.end.column - loc.begin.column, '^');
 
         return mes;
     }
