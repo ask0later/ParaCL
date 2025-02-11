@@ -4,7 +4,7 @@
 #include <fstream>
 #include <string>
 
-constexpr size_t RIGHT_TEST_COUNT = 14;
+constexpr size_t RIGHT_TEST_COUNT = 15;
 constexpr size_t WRONG_TEST_COUNT = 7;
 
 std::string Execute(const std::string& cmd) {
