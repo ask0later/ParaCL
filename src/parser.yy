@@ -53,6 +53,9 @@
     }
 }
 
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
 %token
 /* Binary opetators */
     ADD
@@ -106,7 +109,6 @@
 %nterm <node::Node*> Statement
 
 %nterm <node::AssignNode*> Assigment
-%nterm <node::ScopeNode*> Else
 %nterm <node::CondNode*> Condition
 %nterm <node::LoopNode*> Loop
 
@@ -175,18 +177,50 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = nullptr;
 };
 
-Else: ELSE LCURBRAC Scope RCURBRAC {
-    $$ = $3;
-} | %empty {
-    $$ = nullptr;
+Condition: IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE {
+    node::Node* node = nullptr;
+    if ($5->type_ == node::Node_t::scope) {
+        node = $5;
+    } else {
+        auto scope = driver->template GetNode<node::ScopeNode>(@5);
+        scope->AddStatement($5);
+        node = static_cast<node::Node*>(scope);
+    }
+    
+    $$ = driver->template GetNode<node::CondNode>($3, static_cast<node::ScopeNode*>(node), nullptr, @1);
+} | IF LBRAC Expression RBRAC Statement ELSE Statement {
+    node::Node* node1 = nullptr;
+    if ($5->type_ == node::Node_t::scope) {
+        node1 = $5;
+    } else {
+        auto scope = driver->template GetNode<node::ScopeNode>(@5);
+        scope->AddStatement($5);
+        node1 = static_cast<node::Node*>(scope);
+    }
+
+    node::Node* node2 = nullptr;
+    if ($7->type_ == node::Node_t::scope) {
+        node2 = $7;
+    } else {
+        auto scope = driver->template GetNode<node::ScopeNode>(@7);
+        scope->AddStatement($7);
+        node2 = static_cast<node::Node*>(scope);
+    }
+
+    $$ = driver->template GetNode<node::CondNode>($3, static_cast<node::ScopeNode*>(node1), static_cast<node::ScopeNode*>(node2), @1);
 };
 
-Condition: IF LBRAC Expression RBRAC LCURBRAC Scope RCURBRAC Else {
-    $$ = driver->template GetNode<node::CondNode>($3, $6, $8, @1);
-};
+Loop: WHILE LBRAC Expression RBRAC Statement {
+    node::Node* node = nullptr;
+    if ($5->type_ == node::Node_t::scope) {
+        node = $5;
+    } else {
+        auto scope = driver->template GetNode<node::ScopeNode>(@5);
+        scope->AddStatement($5);
+        node = static_cast<node::Node*>(scope);
+    }
 
-Loop: WHILE LBRAC Expression RBRAC LCURBRAC Scope RCURBRAC {
-    $$ = driver->template GetNode<node::LoopNode>($3, $6, @1);
+    $$ = driver->template GetNode<node::LoopNode>($3, static_cast<node::ScopeNode*>(node), @1);
 };
 
 SubScope: LCURBRAC Scope RCURBRAC {
