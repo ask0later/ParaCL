@@ -22,7 +22,7 @@ bison_target(parser
 
 add_flex_bison_dependency(scanner parser)
 
-add_executable(${PROJECT_NAME} 
+add_executable(${PROJECT_NAME}
   driver.cpp  
   ${BISON_parser_OUTPUTS}
   ${FLEX_scanner_OUTPUTS}
