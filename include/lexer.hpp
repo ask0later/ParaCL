@@ -30,6 +30,14 @@ namespace yy {
             loc_.Step();
         }
 
+        void UpdateComment() {
+            for (size_t i = 0; i < yyleng; ++i) {
+                if (yytext[i] == '\n') {
+                    loc_.Lines(1);
+                }
+            }
+        }
+
         const Location &GetLocation() const {
             return loc_;
         }
