@@ -1,0 +1,4 @@
+1
+Runtime error: 'c' was not declared in this scope, at line #3:
+/*                */ print c;
+                           ^

@@ -5,8 +5,8 @@ num_test = 1
 is_ok = True
 for i in range(1, 15):
     print("Right tests:")
-    str_data =  "tests/right/" + str(i) + ".paracl"
-    str_ans = "tests/right/" + str(i) + ".ans"
+    str_data =  "tests/end-to-end/right/" + str(i) + ".paracl"
+    str_ans = "tests/end-to-end/right/" + str(i) + ".ans"
 
     ans = []
     for i in open(str_ans):
@@ -42,10 +42,10 @@ print("=========================================================================
 print("==================================================================================================")
 print("==================================================================================================")
 print()
-for i in range(1, 7):
+for i in range(1, 8):
     print("Wrong tests:")
-    str_data =  "tests/wrong/" + str(i) + ".paracl"
-    str_ans = "tests/wrong/" + str(i) + ".ans"
+    str_data =  "tests/end-to-end/wrong/" + str(i) + ".paracl"
+    str_ans = "tests/end-to-end/wrong/" + str(i) + ".ans"
 
     ans = []
     for i in open(str_ans):

@@ -13,9 +13,7 @@ NL          [\n]+
 NAME        [a-zA-Z][a-zA-Z0-9_]*
 NUMBER      [1-9][0-9]*|0
 
-START_COMMENT   "/*"
-END_COMMENT     "*/"
-COMMENT "/*"(.*{NL})*.*"*/"|"//".*
+COMMENT "/*"[^*]*"*/"|"//".*
 
 %%
 {NUMBER}{NAME}      { return yy::parser::token_type::ERR; }
@@ -25,7 +23,8 @@ COMMENT "/*"(.*{NL})*.*"*/"|"//".*
 "\n"                { /* skip new line */ 
                       UpdateLine(); }
 
-{COMMENT}           { /* skip text as a comment */ }
+{COMMENT}           { /* skip text as a comment */ 
+                      UpdateComment(); }
 
 "if"                { return yy::parser::token_type::IF;    }    
 "else"              { return yy::parser::token_type::ELSE;  }
