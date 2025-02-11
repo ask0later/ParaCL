@@ -3,6 +3,7 @@
 #include <map>
 #include <cstring>
 #include <fstream>
+#include <cstdlib>
 
 namespace dotter {
     enum COLORS {
@@ -196,7 +197,8 @@ namespace dotter {
             strcat(str1, dot_file_name);
             strcat(str1, str2);
             strcat(str1, image_file_name);
-            system(str1);
+            int ret = std::system(str1);
+            (void)ret;
         }
         
     private:
