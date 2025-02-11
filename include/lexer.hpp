@@ -20,13 +20,14 @@ namespace yy {
         int yywrap() override { return 1; }
 
         void UpdateTokenPosition() {
-            loc_.step();
-            loc_.columns(yyleng);
+            loc_.Step();
+            loc_.Columns(yyleng);
         }
 
         void UpdateLine() {
-            loc_.lines(yyleng);
-            loc_.step();
+            loc_.Lines(yyleng);
+            loc_.end.column = 1;
+            loc_.Step();
         }
 
         const Location &GetLocation() const {
