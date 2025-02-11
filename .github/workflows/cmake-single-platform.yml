@@ -17,9 +17,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
     
-    - name: Install google test and boost, also install g++-
-      run: sudo apt-get install g++
-  
+    - name: Install flex, also install g++-
+      run: sudo apt-get install flex libfl-dev g++
+
     - name: CMake release config and build
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release; cmake --build build
     
