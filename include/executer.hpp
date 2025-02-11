@@ -222,6 +222,10 @@ namespace executer {
 
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
+            if (node.predicat_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
+
             if (param_) {
                 assert(node.first_);
                 node.first_->Accept(*this);
@@ -234,6 +238,10 @@ namespace executer {
         void visitLoopNode(node::LoopNode &node) override {
             assert(node.predicat_);
             node.predicat_->Accept(*this);
+            if (node.predicat_->type_ == node::ExprNode_t::assign) {
+                param_ = 1;
+            }
+            
             assert(node.scope_);
             while (param_) {
                 node.scope_->Accept(*this);
