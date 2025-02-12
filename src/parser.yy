@@ -4,23 +4,27 @@
  *  
  *  Scope -> StatementList 
  *  StatementList -> Statement StatementList | Empty
- *  Statement -> While | If | Assigment | SubScope;
+ *  Statement -> Output Expression | Condition | Loop | Assigment SEMICOLON | SubScope | SEMICOLON
  *
  *
- *  Expression -> Summand Operator Expression | Summand
- *  Summand -> Multiplier PriorityOperator Summand | Multiplier
- *  Multiplier -> (Terminals) | Terminals
- *  Terminals -> Number | Variable
+ *  Expression -> Assigment | sExpression
+ *  sExpression -> sExpression LOGIC_OR ssExpression | ssExpression
+ *  ssExpression -> ssExpression LOGIC_AND sssExpression | sssExpression
+ *  sssExpression -> sssExpression NotPriorityCompareOperators ssssExpression | ssssExpression
+ *  ssssExpression -> ssssExpression PriorityCompareOperators sssssExpression | sssssExpression
+ *  sssssExpression -> sssssExpression ADD Summand | sssssExpression MINUS Summand | Summand 
+ *  Summand -> Summand MULT Multiplier | Summand DIV Multiplier | Summand REMAINDER Multiplier | Multiplier
+ *  Multiplier -> LBRAC Expression RBRAC | NEGATION Multiplier | MINUS Multiplier | Terminals
+ *  Terminals -> NUMBER | NAME | INPUT
  *
  *
- *  While -> (Expression CompareOp Expression) Scope
- *  If -> (Expression CompareOp Expression) Scope | (Expression CompareOp Expression) Scope Scope 
- *  Assigment -> Variable = Expression
- *  SubScope -> Scope
+ *  Condition -> IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE | IF LBRAC Expression RBRAC Statement ELSE Statement
+ *  Loop -> WHILE LBRAC Expression RBRAC Statement 
+ *  Assigment -> NAME ASSIGMENT Expression
+ *  SubScope -> LCURBRAC Scope RCURBRAC
  *
- *  CompareOp -> Equal | NotEqual | Less | Greater | EqualOrLess | EqualOrGreater
- *  Operator -> + | -
- *  PriorityOperator -> * | /
+ *  NotPriorityCompareOperators: EQUAL | NOT_EQUAL
+ *  PriorityCompareOperators: GREATER | LESS | GREATER_OR_EQUAL | LESS_OR_EQUAL
  * ------------------------------------------------------------------------- */
 
 %language "c++"
@@ -85,10 +89,10 @@
     LOGIC_AND
     LOGIC_OR
 
-/* Compare binary opetators */ 
+/* Compare binary operators */ 
     NEGATION
 
-/* Compare binary opetators */
+/* Compare binary operators */
     EQUAL
     NOT_EQUAL
     GREATER
