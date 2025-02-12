@@ -1,0 +1,7 @@
+x = 3;
+if (x == 2)
+    print 2;
+else if (x == 1)
+    print 4;
+else
+    print 3;

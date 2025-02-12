@@ -1,0 +1,15 @@
+if (0) {
+    if (?)
+        print 3;
+    else
+        print 2;
+}
+else if (?)
+{
+    if (0) print 8;
+    else print 99;
+        print 1;
+}
+    print 3;
+else 
+    print 0;
