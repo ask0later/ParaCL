@@ -1,0 +1,3 @@
+x = 0;
+if (0) x = 4; else x = 2;
+print x;
