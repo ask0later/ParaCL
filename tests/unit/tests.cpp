@@ -4,8 +4,8 @@
 #include <fstream>
 #include <string>
 
-constexpr size_t RIGHT_TEST_COUNT = 15;
-constexpr size_t WRONG_TEST_COUNT = 7;
+constexpr size_t RIGHT_TEST_COUNT = 23;
+constexpr size_t WRONG_TEST_COUNT = 10;
 
 std::string Execute(const std::string& cmd) {
     std::array<char, 128> buffer;
@@ -23,34 +23,8 @@ std::string Execute(const std::string& cmd) {
     return result;
 }
 
-void RunTest(std::vector<int> &ans, std::vector<int> &res, size_t i, const std::string &test_name) {
-    std::string program_file = "tests/end-to-end/" + test_name + "/" + std::to_string(i) + ".paracl";
-    std::string answer_file = "tests/end-to-end/" + test_name + "/" + std::to_string(i) + ".ans";
-    
-    std::ifstream ans_stream(answer_file);
-    if (!ans_stream.is_open()) {
-        throw std::runtime_error("file is not open");
-    }
-
-    int value;
-    while (ans_stream >> value) {
-        ans.push_back(value);
-    }
-    ans_stream.close();
-
-    std::string command = "./build/src/Interpretator " + program_file;
-    std::string output;
-    
-    output = Execute(command);
-    
-    std::istringstream result_stream(output);
-    while (result_stream >> value) {
-        res.push_back(value);
-    }
-}
-
 TEST(RightTest, EndtoEndParaCL) {
-    for (size_t i = 1; i < RIGHT_TEST_COUNT; ++i) {
+    for (size_t i = 1; i < RIGHT_TEST_COUNT + 1; ++i) {
         std::string program_file = "tests/end-to-end/right/" + std::to_string(i) + ".paracl";
         std::string answer_file = "tests/end-to-end/right/" + std::to_string(i) + ".ans";
         
@@ -89,7 +63,7 @@ TEST(RightTest, EndtoEndParaCL) {
 }
 
 TEST(WrongTest, EndtoEndParaCL) {
-    for (size_t i = 1; i < WRONG_TEST_COUNT; ++i) {
+    for (size_t i = 1; i < WRONG_TEST_COUNT + 1; ++i) {
         std::string program_file = "tests/end-to-end/wrong/" + std::to_string(i) + ".paracl";
         std::string answer_file = "tests/end-to-end/wrong/" + std::to_string(i) + ".ans";
         
