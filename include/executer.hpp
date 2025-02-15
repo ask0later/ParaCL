@@ -75,15 +75,9 @@ namespace executer {
         void visitLogicOpNode(node::LogicOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            if (node.left_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
             int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
-            if (node.right_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
             int operand2 = param_;
 
             switch (node.type_) {
@@ -99,9 +93,6 @@ namespace executer {
         void visitUnOpNode(node::UnOpNode &node) override {
             assert(node.child_);
             node.child_->Accept(*this);
-            if (node.child_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
 
             switch (node.type_) {
                 case node::UnOpNode_t::minus:
@@ -116,15 +107,9 @@ namespace executer {
         void visitBinOpNode(node::BinOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            if (node.left_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
             int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
-            if (node.right_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
             int operand2 = param_;
 
             switch (node.type_) {
@@ -154,15 +139,9 @@ namespace executer {
         void visitBinCompOpNode(node::BinCompOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            if (node.left_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
             int operand1 = param_;
             assert(node.right_);
             node.right_->Accept(*this);
-            if (node.right_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
             int operand2 = param_;
 
             switch (node.type_) {
@@ -222,9 +201,6 @@ namespace executer {
 
         void visitCondNode(node::CondNode &node) override {
             node.predicat_->Accept(*this);
-            if (node.predicat_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
 
             if (param_) {
                 assert(node.first_);
@@ -238,10 +214,6 @@ namespace executer {
         void visitLoopNode(node::LoopNode &node) override {
             assert(node.predicat_);
             node.predicat_->Accept(*this);
-            if (node.predicat_->type_ == node::ExprNode_t::assign) {
-                param_ = 1;
-            }
-            
             assert(node.scope_);
             while (param_) {
                 node.scope_->Accept(*this);
