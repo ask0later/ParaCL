@@ -25,8 +25,8 @@ std::string Execute(const std::string& cmd) {
 
 TEST(RightTest, EndtoEndParaCL) {
     for (size_t i = 1; i < RIGHT_TEST_COUNT + 1; ++i) {
-        std::string program_file = "tests/end-to-end/right/" + std::to_string(i) + ".paracl";
-        std::string answer_file = "tests/end-to-end/right/" + std::to_string(i) + ".ans";
+        std::string program_file = "../../../tests/end-to-end/right/" + std::to_string(i) + ".paracl";
+        std::string answer_file = "../../../tests/end-to-end/right/" + std::to_string(i) + ".ans";
         
         std::ifstream ans_stream(answer_file);
         if (!ans_stream.is_open()) {
@@ -40,7 +40,7 @@ TEST(RightTest, EndtoEndParaCL) {
         }
         ans_stream.close();
 
-        std::string command = "./build/src/Interpretator " + program_file;
+        std::string command = "../../../build/src/Interpretator " + program_file;
         std::string output;
         
         try {
@@ -64,8 +64,8 @@ TEST(RightTest, EndtoEndParaCL) {
 
 TEST(WrongTest, EndtoEndParaCL) {
     for (size_t i = 1; i < WRONG_TEST_COUNT + 1; ++i) {
-        std::string program_file = "tests/end-to-end/wrong/" + std::to_string(i) + ".paracl";
-        std::string answer_file = "tests/end-to-end/wrong/" + std::to_string(i) + ".ans";
+        std::string program_file = "../../../tests/end-to-end/wrong/" + std::to_string(i) + ".paracl";
+        std::string answer_file = "../../../tests/end-to-end/wrong/" + std::to_string(i) + ".ans";
         
         std::ifstream ans_stream(answer_file);
         ASSERT_TRUE(ans_stream.is_open());
@@ -78,7 +78,7 @@ TEST(WrongTest, EndtoEndParaCL) {
         }
         ans_stream.close();
 
-        std::string command = "./build/src/Interpretator " + program_file;
+        std::string command = "../../../build/src/Interpretator " + program_file;
         std::string output;
         try {
             output = Execute(command);

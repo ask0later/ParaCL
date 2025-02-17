@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13.4)
 project(Interpretator)
 
+enable_testing()
 add_subdirectory(src)
 
 if (WITH_TESTS)
