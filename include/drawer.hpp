@@ -30,7 +30,7 @@ namespace drawer {
     public:
         DrawVisitor(dotter::Dotter &dotter) : dotter_(dotter) {}
 
-        void visitLogicOpNode(node::LogicOpNode &node) override {
+        void Visit(node::LogicOpNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
             
@@ -47,7 +47,7 @@ namespace drawer {
                             reinterpret_cast<std::size_t>(node.right_));
         }
         
-        void visitUnOpNode(node::UnOpNode &node) override {
+        void Visit(node::UnOpNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
             
@@ -59,7 +59,7 @@ namespace drawer {
                             reinterpret_cast<std::size_t>(node.child_));
         }
 
-        void visitBinOpNode(node::BinOpNode &node) override {
+        void Visit(node::BinOpNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
             
@@ -76,7 +76,7 @@ namespace drawer {
                             reinterpret_cast<std::size_t>(node.right_));
         }
 
-        void visitBinCompOpNode(node::BinCompOpNode &node) override {
+        void Visit(node::BinCompOpNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::RED, dotter::COLORS::BLACK);
             
@@ -92,25 +92,25 @@ namespace drawer {
                             reinterpret_cast<std::size_t>(node.right_));
         }
 
-        void visitNumberNode(node::NumberNode &node) override {
+        void Visit(node::NumberNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::DIAMOND, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode(std::to_string(node.number_), reinterpret_cast<std::size_t>(std::addressof(node)));
         }
 
-        void visitInputNode(node::InputNode &node) override {
+        void Visit(node::InputNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::TRIANGLE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::YELLOW, dotter::COLORS::BLACK);
             dotter_.AddNode("Input", reinterpret_cast<std::size_t>(std::addressof(node)));
         }
 
-        void visitVarNode(node::VarNode &node) override {
+        void Visit(node::VarNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::DIAMOND, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::GREEN, dotter::COLORS::BLACK);
             dotter_.AddNode(node.name_, reinterpret_cast<std::size_t>(std::addressof(node)));
         }
 
-        void visitScopeNode(node::ScopeNode &node) override {
+        void Visit(node::ScopeNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::WHITE, dotter::COLORS::BLACK);
             dotter_.AddNode("Scope", reinterpret_cast<std::size_t>(std::addressof(node)));
@@ -122,13 +122,13 @@ namespace drawer {
             }
         }
 
-        void visitDeclNode(node::DeclNode &node) override {
+        void Visit(node::DeclNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::GREEN, dotter::COLORS::BLACK);
             dotter_.AddNode(node.name_, reinterpret_cast<std::size_t>(std::addressof(node)));
         }
 
-        void visitCondNode(node::CondNode &node) override {
+        void Visit(node::CondNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode("If", reinterpret_cast<std::size_t>(std::addressof(node)));
@@ -149,7 +149,7 @@ namespace drawer {
             }
         }
         
-        void visitLoopNode(node::LoopNode &node) override {
+        void Visit(node::LoopNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::ELLIPSE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode("While", reinterpret_cast<std::size_t>(std::addressof(node)));
@@ -166,7 +166,7 @@ namespace drawer {
                             reinterpret_cast<std::size_t>(node.scope_));
         }
 
-        void visitAssignNode(node::AssignNode &node) override {
+        void Visit(node::AssignNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::BOX, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::BLUE, dotter::COLORS::WHITE);
             dotter_.AddNode("=", reinterpret_cast<std::size_t>(std::addressof(node)));
@@ -181,7 +181,7 @@ namespace drawer {
                             reinterpret_cast<std::size_t>(node.expr_));
         }
         
-        void visitOutputNode(node::OutputNode &node) override {
+        void Visit(node::OutputNode &node) override {
             dotter_.SetNodeStyle(dotter::NodeStyle::SHAPES::TRIANGLE, dotter::NodeStyle::STYLES::BOLD,
                                   dotter::COLORS::BLACK, dotter::COLORS::YELLOW, dotter::COLORS::BLACK);
             dotter_.AddNode("Output", reinterpret_cast<std::size_t>(std::addressof(node)));
