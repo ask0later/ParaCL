@@ -4,6 +4,7 @@
 #include <exception>
 #include <limits>
 #include <cassert>
+#include <algorithm>
 
 #include "error_handler.hpp"
 #include "node.hpp"
@@ -13,14 +14,16 @@ namespace executer {
     namespace symTable {
         class SymbolTable final {
         public:
-            void SetOrAddValue(std::string &name, int value) {
-                varMap_[name] = value;
+            void SetOrAddValue(std::string_view name, int value) {
+                varMap_[std::string(name)] = value;
             }
 
-            std::optional<int> GetValue(std::string &name) {
-                auto hit = varMap_.find(name);
+            std::optional<int> GetValue(std::string_view name) const {
+                auto name_str = std::string(name);
+                
+                auto hit = varMap_.find(name_str);
                 if (hit != varMap_.end()) 
-                    return varMap_[name];
+                    return varMap_.at(name_str);
 
                 return std::nullopt;
             }
@@ -35,29 +38,40 @@ namespace executer {
                 symbolTables_.reserve(DEFAULT_NAME_COUNT);
             }
 
-            void SetValue(std::string &name, int value) {
-                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
-                    auto find = it->GetValue(name);
-                    if (find.has_value()) {
-                        it->SetOrAddValue(name, value);
-                        return;
-                    }
+            void SetValue(std::string_view name, int value) {
+                auto rbegin = symbolTables_.rbegin();
+                auto rend = symbolTables_.rend();
+                auto pred = [&name] (const SymbolTable& cur) {
+                    auto find = cur.GetValue(name);
+                    return find.has_value();
+                };
+                
+                auto it = std::find_if(rbegin, rend, pred);
+                if (it != rend) {
+                    it->SetOrAddValue(name, value);
                 }
+
                 symbolTables_.back().SetOrAddValue(name, value);
             } 
 
-            int GetValue(std::string &name) {
-                for (auto it = symbolTables_.rbegin(), end = symbolTables_.rend(); it != end; ++it) {
-                    auto find = it->GetValue(name);
-                    if (find.has_value())
-                        return *find;
+            int GetValue(std::string_view name) const {
+                auto rbegin = symbolTables_.rbegin();
+                auto rend = symbolTables_.rend();
+                auto pred = [&name] (const SymbolTable& cur) {
+                    auto find = cur.GetValue(name);
+                    return find.has_value();
+                };
+
+                auto it = std::find_if(rbegin, rend, pred);
+                if (it != rend) {
+                    return *(it->GetValue(name));
                 }
 
-                throw std::runtime_error(name);
+                throw std::runtime_error(name.data());
             }
 
             void PushSymTable() {
-                symbolTables_.push_back(SymbolTable{});
+                symbolTables_.emplace_back();
             }
 
             void PopSymTable() {
@@ -72,121 +86,121 @@ namespace executer {
     public:
         ExecuteVisitor(err::ErrorHandler &err_handler) : err_handler_(err_handler) {}
 
-        void visitLogicOpNode(node::LogicOpNode &node) override {
+        void Visit(node::LogicOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            int operand1 = param_;
+            int operand1 = GetParam();
             assert(node.right_);
             node.right_->Accept(*this);
-            int operand2 = param_;
+            int operand2 = GetParam();
 
             switch (node.type_) {
                 case node::LogicOpNode_t::logic_and:
-                    param_ = operand1 && operand2;
+                    SetParam(operand1 && operand2);
                     return;
                 case node::LogicOpNode_t::logic_or:
-                    param_ = operand1 || operand2;
+                    SetParam(operand1 || operand2);
                     return;
             }
         }
 
-        void visitUnOpNode(node::UnOpNode &node) override {
+        void Visit(node::UnOpNode &node) override {
             assert(node.child_);
             node.child_->Accept(*this);
 
             switch (node.type_) {
                 case node::UnOpNode_t::minus:
-                    param_ = - param_;
+                    SetParam(-GetParam());
                     return;
                 case node::UnOpNode_t::negation:
-                    param_ = !(param_);
+                    SetParam(!GetParam());
                     return;
             }
         }
 
-        void visitBinOpNode(node::BinOpNode &node) override {
+        void Visit(node::BinOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            int operand1 = param_;
+            int operand1 = GetParam();
             assert(node.right_);
             node.right_->Accept(*this);
-            int operand2 = param_;
+            int operand2 = GetParam();
 
             switch (node.type_) {
                 case node::BinOpNode_t::add:
-                    param_ = operand1 + operand2;
+                    SetParam(operand1 + operand2);
                     return;
                 case node::BinOpNode_t::sub:
-                    param_ = operand1 - operand2;
+                    SetParam(operand1 - operand2);
                     return;
                 case node::BinOpNode_t::mul:
-                    param_ = operand1 * operand2;
+                    SetParam(operand1 * operand2);
                     return;
                 case node::BinOpNode_t::div:
                     if (operand2 == 0) {
                         throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
                                                                                 "Division by zero", \
-                                                                                node.info_.GetLocation()));
+                                                                                node.location_));
                     }
-                    param_ = operand1 / operand2;
+                    SetParam(operand1 / operand2);
                     return;
                 case node::BinOpNode_t::remainder:
-                    param_ = operand1 % operand2;
+                    SetParam(operand1 % operand2);
                     return;  
             }
         }
 
-        void visitBinCompOpNode(node::BinCompOpNode &node) override {
+        void Visit(node::BinCompOpNode &node) override {
             assert(node.left_);
             node.left_->Accept(*this);
-            int operand1 = param_;
+            int operand1 = GetParam();
             assert(node.right_);
             node.right_->Accept(*this);
-            int operand2 = param_;
+            int operand2 = GetParam();
 
             switch (node.type_) {
                 case node::BinCompOpNode_t::equal:
-                    param_ = (operand1 == operand2);
+                    SetParam(operand1 == operand2);
                     return;
                 case node::BinCompOpNode_t::not_equal:
-                    param_ = (operand1 != operand2);
+                    SetParam(operand1 != operand2);
                     return;
                 case node::BinCompOpNode_t::greater:
-                    param_ = (operand1 > operand2);
+                    SetParam(operand1 > operand2);
                     return;
                 case node::BinCompOpNode_t::less:
-                    param_ = (operand1 < operand2);
+                    SetParam(operand1 < operand2);
                     return;
                 case node::BinCompOpNode_t::greater_or_equal:
-                    param_ = (operand1 >= operand2);
+                    SetParam(operand1 >= operand2);
                     return;
                 case node::BinCompOpNode_t::less_or_equal:
-                    param_ = (operand1 <= operand2);
+                    SetParam(operand1 <= operand2);
                     return;
             }
         }
 
-        void visitNumberNode(node::NumberNode &node) override {
-            param_ = node.number_;
+        void Visit(node::NumberNode &node) override {
+            SetParam(node.number_);
         }
 
-        void visitInputNode(node::InputNode &node) override {
+        void Visit(node::InputNode &node) override {
             int input = 0;
             std::cin >> input;
-            param_ = input;
+            SetParam(input);
         }
 
-        void visitVarNode(node::VarNode &node) override {
+        void Visit(node::VarNode &node) override {
             try {
-                param_ = symbolTables_.GetValue(node.name_);
+                SetParam(symbolTables_.GetValue(node.name_));
             } catch(std::runtime_error& ex) {
                 throw std::runtime_error(err_handler_.GetFullErrorMessage("Runtime error", \
                             std::string("'" + std::string(ex.what()) + "' was not declared in this scope"), \
-                            node.info_.GetLocation()));
+                            node.location_));
             }
         }
 
-        void visitScopeNode(node::ScopeNode &node) override {
+        void Visit(node::ScopeNode &node) override {
             symbolTables_.PushSymTable();
             for (auto &statement : node.kids_) {
                 if (statement != nullptr)
@@ -195,14 +209,14 @@ namespace executer {
             symbolTables_.PopSymTable();
         }
 
-        void visitDeclNode(node::DeclNode &node) override {
-            string_param_ = node.name_;
+        void Visit(node::DeclNode &node) override {
+            SetStrParam(node.name_);
         }
 
-        void visitCondNode(node::CondNode &node) override {
+        void Visit(node::CondNode &node) override {
             node.predicat_->Accept(*this);
 
-            if (param_) {
+            if (GetParam()) {
                 assert(node.first_);
                 node.first_->Accept(*this);
             } else {
@@ -211,35 +225,50 @@ namespace executer {
             }
         }
 
-        void visitLoopNode(node::LoopNode &node) override {
+        void Visit(node::LoopNode &node) override {
             assert(node.predicat_);
             node.predicat_->Accept(*this);
             assert(node.scope_);
-            while (param_) {
+
+            while (GetParam()) {
                 node.scope_->Accept(*this);
                 node.predicat_->Accept(*this);
             }
         }
 
-        void visitAssignNode(node::AssignNode &node) override {
+        void Visit(node::AssignNode &node) override {
             assert(node.expr_);
             node.expr_->Accept(*this);
             assert(node.var_);
             node.var_->Accept(*this);
-            auto name = string_param_;
-            symbolTables_.SetValue(name, param_);
+            symbolTables_.SetValue(GetStrParam(), GetParam());
         }
 
-        void visitOutputNode(node::OutputNode &node) override {
+        void Visit(node::OutputNode &node) override {
             assert(node.expr_);
             node.expr_->Accept(*this);
-            int res = param_; 
-            std::cout << res << std::endl;
+            std::cout << GetParam() << std::endl;
         }
 
     private:
+        int GetParam() const {
+            return param_;
+        }
+
+        void SetParam(int param) {
+            param_ = param;
+        }
+
+        std::string_view GetStrParam() const {
+            return string_param_;
+        }
+
+        void SetStrParam(std::string_view string_param) {
+            string_param_ = string_param;
+        }
+
         int param_ = 0;
-        std::string string_param_;
+        std::string_view string_param_;
         symTable::SymbolTables symbolTables_;
         err::ErrorHandler &err_handler_;
     }; // class ExecuteVisitor
