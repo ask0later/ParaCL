@@ -163,55 +163,51 @@ StatementList: StatementList Statement {
 
     $$ = $1;
 } | %empty {
-    $$ = driver->template GetNode<node::ScopeNode>(driver->GetLocation());
+    $$ = driver->GetNode<node::ScopeNode>(driver->GetLocation());
 };
 
 Statement: OUTPUT Expression SEMICOLON {
-    auto tmp = driver->template GetNode<node::OutputNode>($2, @1);
-    $$ = static_cast<node::Node*>(tmp);
+    $$ = driver->GetNode<node::OutputNode>($2, @1);
 } | Condition {
-    $$ = static_cast<node::Node*>($1);
+    $$ = $1;
 } | Loop {
-    $$ = static_cast<node::Node*>($1);
+    $$ = $1;
 } | Assigment SEMICOLON {
-    $$ = static_cast<node::Node*>($1);
+    $$ = $1;
 } | SubScope {
-    $$ = static_cast<node::Node*>($1);
+    $$ = $1;
 } | SEMICOLON {
     $$ = nullptr;
 };
 
 Condition: IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE {
-    node::Node* node = nullptr;
+    node::ScopeNode* scope = nullptr;
     if ($5->type_ == node::Node_t::scope) {
-        node = $5;
+        scope = static_cast<node::ScopeNode*>($5);
     } else {
-        auto scope = driver->template GetNode<node::ScopeNode>(@5);
+        scope = driver->GetNode<node::ScopeNode>(@5);
         scope->AddStatement($5);
-        node = static_cast<node::Node*>(scope);
     }
     
-    $$ = driver->template GetNode<node::CondNode>($3, static_cast<node::ScopeNode*>(node), nullptr, @1);
+    $$ = driver->GetNode<node::CondNode>($3, scope, nullptr, @1);
 } | IF LBRAC Expression RBRAC Statement ELSE Statement {
-    node::Node* node1 = nullptr;
+    node::ScopeNode* scope1 = nullptr;
     if ($5->type_ == node::Node_t::scope) {
-        node1 = $5;
+        scope1 = static_cast<node::ScopeNode*>($5);
     } else {
-        auto scope = driver->template GetNode<node::ScopeNode>(@5);
-        scope->AddStatement($5);
-        node1 = static_cast<node::Node*>(scope);
+        scope1 = driver->GetNode<node::ScopeNode>(@5);
+        scope1->AddStatement($5);
     }
 
-    node::Node* node2 = nullptr;
+    node::ScopeNode* scope2 = nullptr;
     if ($7->type_ == node::Node_t::scope) {
-        node2 = $7;
+        scope2 = static_cast<node::ScopeNode*>($7);
     } else {
-        auto scope = driver->template GetNode<node::ScopeNode>(@7);
-        scope->AddStatement($7);
-        node2 = static_cast<node::Node*>(scope);
+        scope2 = driver->GetNode<node::ScopeNode>(@7);
+        scope2->AddStatement($7);
     }
 
-    $$ = driver->template GetNode<node::CondNode>($3, static_cast<node::ScopeNode*>(node1), static_cast<node::ScopeNode*>(node2), @1);
+    $$ = driver->GetNode<node::CondNode>($3, scope1, scope2, @1);
 };
 
 Loop: WHILE LBRAC Expression RBRAC Statement {
@@ -219,12 +215,12 @@ Loop: WHILE LBRAC Expression RBRAC Statement {
     if ($5->type_ == node::Node_t::scope) {
         node = $5;
     } else {
-        auto scope = driver->template GetNode<node::ScopeNode>(@5);
+        auto scope = driver->GetNode<node::ScopeNode>(@5);
         scope->AddStatement($5);
         node = static_cast<node::Node*>(scope);
     }
 
-    $$ = driver->template GetNode<node::LoopNode>($3, static_cast<node::ScopeNode*>(node), @1);
+    $$ = driver->GetNode<node::LoopNode>($3, static_cast<node::ScopeNode*>(node), @1);
 };
 
 SubScope: LCURBRAC Scope RCURBRAC {
@@ -232,63 +228,54 @@ SubScope: LCURBRAC Scope RCURBRAC {
 }
 
 Assigment: NAME ASSIGMENT Expression {
-    auto name = driver->template GetNode<node::DeclNode>($1, @1);
-    $$ = driver->template GetNode<node::AssignNode>(name, $3, @2);
+    auto name = driver->GetNode<node::DeclNode>($1, @1);
+    $$ = driver->GetNode<node::AssignNode>(name, $3, @2);
 };
 
 Expression: Assigment {
-    $$ = static_cast<node::ExprNode*>($1);
+    $$ = $1;
 } | sExpression {
     $$ = $1;
 };
 
 sExpression: sExpression LOGIC_OR ssExpression {
-    auto logic_op = driver->template GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_or, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(logic_op);
+    $$ = driver->GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_or, $1, $3, @2);
 } | ssExpression {
     $$ = $1;
 };
 
 ssExpression: ssExpression LOGIC_AND sssExpression {
-    auto logic_op = driver->template GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_and, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(logic_op);
+    $$ = driver->GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_and, $1, $3, @2);
 } | sssExpression {
     $$ = $1;
 };
 
 sssExpression: sssExpression NotPriorityCompareOperators ssssExpression {
-    auto bin_op = driver->template GetNode<node::BinCompOpNode>($2, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(bin_op);
+    $$ = driver->GetNode<node::BinCompOpNode>($2, $1, $3, @2);
 } | ssssExpression {
     $$ = $1;
 };
 
 ssssExpression: ssssExpression PriorityCompareOperators sssssExpression {
-    auto bin_op = driver->template GetNode<node::BinCompOpNode>($2, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(bin_op);
+    $$ = driver->GetNode<node::BinCompOpNode>($2, $1, $3, @2);
 } | sssssExpression {
     $$ = $1;
 };
 
 sssssExpression: sssssExpression ADD Summand {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(binop);
+    $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3, @2);
 } | sssssExpression MINUS Summand {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(binop);
+    $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3, @2);
 } | Summand {
     $$ = $1;
 };
 
 Summand: Summand MULT Multiplier {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(binop);
+    $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::mul, $1, $3, @2);
 } | Summand DIV Multiplier {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(binop);
+    $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::div, $1, $3, @2);
 } | Summand REMAINDER Multiplier {
-    auto binop = driver->template GetNode<node::BinOpNode>(node::BinOpNode_t::remainder, $1, $3, @2);
-    $$ = static_cast<node::ExprNode*>(binop);
+    $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::remainder, $1, $3, @2);
 } | Multiplier {
     $$ = $1;
 };
@@ -296,24 +283,19 @@ Summand: Summand MULT Multiplier {
 Multiplier: LBRAC Expression RBRAC {
     $$ = $2;
 } | NEGATION Multiplier {
-    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::negation, $2, @1);
-    $$ = static_cast<node::ExprNode*>(unop);
+    $$ = driver->GetNode<node::UnOpNode>(node::UnOpNode_t::negation, $2, @1);
 } | MINUS Multiplier {
-    auto unop = driver->template GetNode<node::UnOpNode>(node::UnOpNode_t::minus, $2, @1);
-    $$ = static_cast<node::ExprNode*>(unop);
+    $$ = driver->GetNode<node::UnOpNode>(node::UnOpNode_t::minus, $2, @1);
 } | Terminals {
     $$ = $1;
 };
 
 Terminals: NUMBER {
-    auto number = driver->template GetNode<node::NumberNode>($1, @1);
-    $$ = static_cast<node::ExprNode*>(number);
+    $$ = driver->GetNode<node::NumberNode>($1, @1);
 } | NAME {
-    auto name = driver->template GetNode<node::VarNode>($1, @1);
-    $$ = static_cast<node::ExprNode*>(name);
+    $$ = driver->GetNode<node::VarNode>($1, @1);
 } | INPUT {
-    auto input = driver->template GetNode<node::InputNode>(@1);
-    $$ = static_cast<node::ExprNode*>(input);
+    $$ = driver->GetNode<node::InputNode>(@1);
 };
 
 %%
