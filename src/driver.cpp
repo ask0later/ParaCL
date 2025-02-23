@@ -9,8 +9,7 @@ int main(int argc, char* argv[])
     }
 
     try {
-        std::string file_name(argv[1]);
-        yy::Driver &driver = yy::Driver::QueryDriver(file_name);
+        yy::Driver &driver = yy::Driver::QueryDriver(argv[1]);
         driver.parse();
         driver.DrawAST();
         driver.Execute();

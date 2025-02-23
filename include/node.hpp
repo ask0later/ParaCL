@@ -1,6 +1,7 @@
 #pragma once 
 #include <vector>
 #include <string>
+#include <memory>
 #include "location.hpp"
 
 namespace node {
@@ -8,78 +9,63 @@ namespace node {
         template <typename T> class Builder final {
         public:
             template <typename S, typename... Args>
-            S *GetObj(Args... args) {
-                auto tmp = new S{args...};
-                buffer_.push_back(static_cast<T *>(tmp));
-                return tmp;
+            S *GetObj(Args&&... args) {
+                auto tmp = std::make_unique<S>(std::forward<Args>(args)...);
+                auto raw_ptr = tmp.get();
+                buffer_.push_back(std::move(tmp));
+                return raw_ptr;
             }
-
-            void Clean() noexcept {
-                for (auto &&tmp : buffer_)
-                    delete tmp;
-                buffer_.clear();
-            }
-
         private:
-            std::vector<T *> buffer_;
+            std::vector<std::unique_ptr<T>> buffer_;
         }; // class Builder
     } // namespace details
 
     enum Node_t {
-        no_type = 0,
-        expr = 1,
-        decl = 2,
-        cond = 3,
-        loop = 4, 
-        scope = 5,
-        output = 6
+        no_type = 1,
+        expr,
+        decl,
+        cond,
+        loop, 
+        scope,
+        output
     };
 
     enum UnOpNode_t {
-        minus = 7,
-        negation = 8
+        minus = 10,
+        negation
     };
 
     enum BinOpNode_t {
-        add = 9,
-        sub = 10,
-        mul = 11,
-        div = 12,
-        remainder = 13
+        add = 20,
+        sub,
+        mul,
+        div,
+        remainder
     };
 
     enum BinCompOpNode_t {
-        equal = 14,
-        not_equal = 15,
-        greater = 16,
-        less = 17,
-        greater_or_equal = 18,
-        less_or_equal = 19
+        equal = 30,
+        not_equal,
+        greater,
+        less,
+        greater_or_equal,
+        less_or_equal
     };
 
     enum LogicOpNode_t {
-        logic_and = 20,
-        logic_or = 21
+        logic_and = 40,
+        logic_or
     };
 
     enum ExprNode_t {
-        assign = 22,
-        logic_op = 23,
-        un_op = 24,
-        bin_op = 25,
-        bin_comp_op = 26,
-        number = 27,
-        var = 28,
-        input = 29
-    };
-
-    class NodeInfo {
-    public:
-        NodeInfo(yy::Location location) : location_(location) {}
-
-        yy::Location &GetLocation() { return location_; }
-    private:
-        yy::Location location_;
+        assign = 50,
+        logic_op,
+        un_op,
+        bin_op,
+        bin_comp_op,
+        number,
+        var,
+        input
     };
 
     class NodeVisitor;
@@ -87,11 +73,11 @@ namespace node {
     struct Node {
     public:
         Node(Node_t type, yy::Location location) :
-            type_(type), info_(location) {}
+            type_(type), location_(location) {}
         virtual ~Node() = default;
         inline virtual void Accept(NodeVisitor &visitor) = 0;
         Node_t type_;
-        NodeInfo info_;
+        yy::Location location_;
     }; // class Node
 
     struct ExprNode : public Node {
@@ -110,7 +96,6 @@ namespace node {
     struct DeclNode final : public Node {
         DeclNode(const std::string &name, yy::Location location) : Node(Node_t::decl, location), name_(std::move(name)) {}
         inline void Accept(NodeVisitor &visitor) override;
-        std::string GetName() { return name_; }
         std::string name_;
     }; // class DeclNode
 
@@ -196,70 +181,70 @@ namespace node {
     class NodeVisitor {
     public:
         virtual ~NodeVisitor() = default;
-        virtual void visitLogicOpNode(LogicOpNode &node) = 0;
-        virtual void visitUnOpNode(UnOpNode &node) = 0;
-        virtual void visitBinOpNode(BinOpNode &node) = 0;
-        virtual void visitBinCompOpNode(BinCompOpNode &node) = 0;
-        virtual void visitNumberNode(NumberNode &node) = 0;
-        virtual void visitInputNode(InputNode &node) = 0;
-        virtual void visitVarNode(VarNode &node) = 0;
-        virtual void visitScopeNode(ScopeNode &node) = 0;
-        virtual void visitDeclNode(DeclNode &node) = 0;
-        virtual void visitCondNode(CondNode &node) = 0;
-        virtual void visitLoopNode(LoopNode &node) = 0;
-        virtual void visitAssignNode(AssignNode &node) = 0;
-        virtual void visitOutputNode(OutputNode &node) = 0;
+        virtual void Visit(LogicOpNode &node) = 0;
+        virtual void Visit(UnOpNode &node) = 0;
+        virtual void Visit(BinOpNode &node) = 0;
+        virtual void Visit(BinCompOpNode &node) = 0;
+        virtual void Visit(NumberNode &node) = 0;
+        virtual void Visit(InputNode &node) = 0;
+        virtual void Visit(VarNode &node) = 0;
+        virtual void Visit(ScopeNode &node) = 0;
+        virtual void Visit(DeclNode &node) = 0;
+        virtual void Visit(CondNode &node) = 0;
+        virtual void Visit(LoopNode &node) = 0;
+        virtual void Visit(AssignNode &node) = 0;
+        virtual void Visit(OutputNode &node) = 0;
     }; // class NodeVisitor
 
     inline void LogicOpNode::Accept(NodeVisitor &visitor) {
-        visitor.visitLogicOpNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void UnOpNode::Accept(NodeVisitor &visitor) {
-        visitor.visitUnOpNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void BinOpNode::Accept(NodeVisitor &visitor) {
-        visitor.visitBinOpNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void BinCompOpNode::Accept(NodeVisitor &visitor) {
-        visitor.visitBinCompOpNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void NumberNode::Accept(NodeVisitor &visitor) {
-        visitor.visitNumberNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void InputNode::Accept(NodeVisitor &visitor) {
-        visitor.visitInputNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void VarNode::Accept(NodeVisitor &visitor) {
-        visitor.visitVarNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void ScopeNode::Accept(NodeVisitor &visitor) {
-        visitor.visitScopeNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void DeclNode::Accept(NodeVisitor &visitor) {
-        visitor.visitDeclNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void CondNode::Accept(NodeVisitor &visitor) {
-        visitor.visitCondNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void LoopNode::Accept(NodeVisitor &visitor) {
-        visitor.visitLoopNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void AssignNode::Accept(NodeVisitor &visitor) {
-        visitor.visitAssignNode(*this);
+        visitor.Visit(*this);
     }
 
     inline void OutputNode::Accept(NodeVisitor &visitor) {
-        visitor.visitOutputNode(*this);
+        visitor.Visit(*this);
     }
 }; // namespace node

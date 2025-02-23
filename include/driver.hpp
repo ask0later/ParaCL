@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <utility>
 
 #include "error_handler.hpp"
 #include "lexer.hpp"
@@ -10,13 +11,12 @@
 namespace yy {
 
 class Driver final {
-    Driver(std::string &file_name) : file_name_(file_name), lex_(yy::Lexer::QueryLexer(file_name)), err_handler_(err::ErrorHandler::QueryErrorHandler()) {}
-
-    ~Driver() {
-        builder_.Clean();
-    }
+    Driver(std::string_view file_name) : file_name_(std::string(file_name)), 
+                                         lex_(yy::Lexer::QueryLexer(file_name)),
+                                         err_handler_(err::ErrorHandler::QueryErrorHandler()) {}
+    ~Driver() {}
 public:
-    static Driver &QueryDriver(std::string &file_name) {
+    static Driver &QueryDriver(std::string_view file_name) {
         static Driver driver{file_name};
         return driver;
     }
@@ -30,8 +30,8 @@ public:
     }
 
     template <typename T, typename... Args>
-    T *GetNode(Args... args) {
-        return builder_.template GetObj<T>(args...);
+    T *GetNode(Args&&... args) {
+        return builder_.template GetObj<T>(std::forward<Args>(args)...);
     }
 
     const Location &GetLocation() const {
@@ -104,7 +104,7 @@ private:
     yy::Lexer &lex_;
     node::Node *root_ = nullptr;
     node::details::Builder<node::Node> builder_;
-    const std::string &file_name_;
+    const std::string file_name_;
     err::ErrorHandler &err_handler_;
 };
 } // namespace yy

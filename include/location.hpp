@@ -7,10 +7,11 @@ namespace yy {
             int line = 1;
             int column = 1;
         }; // struct Position
+        
     public:
         Location() {}
-        Location(std::string &file_name) {
-            std::ifstream file(file_name);
+        Location(std::string_view file_name) {
+            std::ifstream file(file_name.data());
             if (!file.is_open()) {
                 throw std::invalid_argument("Can't open file");
             }
