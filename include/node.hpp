@@ -20,8 +20,8 @@ namespace node {
         }; // class Builder
     } // namespace details
 
-    enum Node_t {
-        no_type = 1,
+    enum class Node_t {
+        no_type,
         expr,
         decl,
         cond,
@@ -57,17 +57,6 @@ namespace node {
         logic_or
     };
 
-    enum ExprNode_t {
-        assign = 50,
-        logic_op,
-        un_op,
-        bin_op,
-        bin_comp_op,
-        number,
-        var,
-        input
-    };
-
     class NodeVisitor;
 
     struct Node {
@@ -81,9 +70,8 @@ namespace node {
     }; // class Node
 
     struct ExprNode : public Node {
-        ExprNode(ExprNode_t type, yy::Location location) : Node(Node_t::expr, location), type_(type) {}
+        ExprNode(yy::Location location) : Node(Node_t::expr, location) {}
         void Accept(NodeVisitor &visitor) override = 0;
-        ExprNode_t type_;
     }; // class ExprNode
 
     struct ScopeNode final : public Node {
@@ -123,7 +111,7 @@ namespace node {
 
     struct LogicOpNode final : public ExprNode {
         LogicOpNode(LogicOpNode_t type, ExprNode *left, ExprNode *right, yy::Location location) 
-        : ExprNode(ExprNode_t::logic_op, location), type_(type), left_(left), right_(right) {}
+        : ExprNode(location), type_(type), left_(left), right_(right) {}
         void Accept(NodeVisitor &visitor) override;
         LogicOpNode_t type_;
         ExprNode *left_;
@@ -132,7 +120,7 @@ namespace node {
 
     struct UnOpNode final : public ExprNode {
         UnOpNode(UnOpNode_t type, ExprNode *child, yy::Location location) 
-        : ExprNode(ExprNode_t::un_op, location), type_(type), child_(child) {}
+        : ExprNode(location), type_(type), child_(child) {}
         void Accept(NodeVisitor &visitor) override;
         UnOpNode_t type_;
         ExprNode *child_;
@@ -140,7 +128,7 @@ namespace node {
 
     struct BinOpNode final : public ExprNode {
         BinOpNode(BinOpNode_t type, ExprNode *left, ExprNode *right, yy::Location location) 
-        : ExprNode(ExprNode_t::bin_op, location), type_(type), left_(left), right_(right) {}
+        : ExprNode(location), type_(type), left_(left), right_(right) {}
         void Accept(NodeVisitor &visitor) override;
         BinOpNode_t type_;
         ExprNode *left_, *right_;
@@ -148,31 +136,31 @@ namespace node {
 
     struct BinCompOpNode final : public ExprNode {
         BinCompOpNode(BinCompOpNode_t type, ExprNode *left, ExprNode *right, yy::Location location) 
-        : ExprNode(ExprNode_t::bin_comp_op, location), type_(type), left_(left), right_(right) {}
+        : ExprNode(location), type_(type), left_(left), right_(right) {}
         void Accept(NodeVisitor &visitor) override;
         BinCompOpNode_t type_;
         ExprNode *left_, *right_;
     }; // class BinCompOpNode
 
     struct NumberNode final : public ExprNode {
-        NumberNode(int number, yy::Location location) : ExprNode(ExprNode_t::number, location), number_(number) {}
+        NumberNode(int number, yy::Location location) : ExprNode(location), number_(number) {}
         void Accept(NodeVisitor &visitor) override;
         int number_;
     }; // class NumberNode
 
     struct InputNode final : public ExprNode {
-        InputNode(yy::Location location) : ExprNode(ExprNode_t::input, location) {}
+        InputNode(yy::Location location) : ExprNode(location) {}
         void Accept(NodeVisitor &visitor) override;
     }; // class InputNode
 
     struct VarNode final : public ExprNode {
-        VarNode(const std::string &name, yy::Location location) : ExprNode(ExprNode_t::var, location), name_(std::move(name)) {}
+        VarNode(const std::string &name, yy::Location location) : ExprNode(location), name_(std::move(name)) {}
         void Accept(NodeVisitor &visitor) override;
         std::string name_;
     }; // class VarNode
 
     struct AssignNode final : public ExprNode {
-        AssignNode(DeclNode *var, ExprNode *expr, yy::Location location) : ExprNode(ExprNode_t::assign, location), var_(var), expr_(expr) {}
+        AssignNode(DeclNode *var, ExprNode *expr, yy::Location location) : ExprNode(location), var_(var), expr_(expr) {}
         void Accept(NodeVisitor &visitor) override;
         DeclNode *var_;
         ExprNode *expr_;
