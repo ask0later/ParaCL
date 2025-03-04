@@ -19,21 +19,12 @@
  *  Summand -> Summand MULT Multiplier | Summand DIV Multiplier | Summand REMAINDER Multiplier | Multiplier
  *  Multiplier -> LBRAC Expression RBRAC | NEGATION Multiplier | MINUS Multiplier | Terminals
  *  Terminals -> NUMBER | NAME | INPUT
-
-Expression: Assigment | LogicExpr
-
-
-CompExpr: CompExpr EQUAL CompExpr | CompExpr NOT_EQUAL CompExpr | CompExpr GREATER CompExpr | CompExpr LESS CompExpr | CompExpr GREATER_OR_EQUAL CompExpr | CompExpr LESS_OR_EQUAL CompExpr | MathExpr
-MathExpr: MathExpr ADD Summand | MathExpr MINUS Summand | Summand
- *
  *
  *  Condition -> IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE | IF LBRAC Expression RBRAC Statement ELSE Statement
  *  Loop -> WHILE LBRAC Expression RBRAC Statement 
  *  Assigment -> NAME ASSIGMENT Expression
  *  SubScope -> LCURBRAC Scope RCURBRAC
  *
- *  NotPriorityCompareOperators: EQUAL | NOT_EQUAL
- *  PriorityCompareOperators: GREATER | LESS | GREATER_OR_EQUAL | LESS_OR_EQUAL
  * ------------------------------------------------------------------------- */
 
 %language "c++"
