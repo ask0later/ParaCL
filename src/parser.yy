@@ -7,15 +7,24 @@
  *  Statement -> Output Expression | Condition | Loop | Assigment SEMICOLON | SubScope | SEMICOLON
  *
  *
- *  Expression -> Assigment | sExpression
- *  sExpression -> sExpression LOGIC_OR ssExpression | ssExpression
- *  ssExpression -> ssExpression LOGIC_AND sssExpression | sssExpression
- *  sssExpression -> sssExpression NotPriorityCompareOperators ssssExpression | ssssExpression
- *  ssssExpression -> ssssExpression PriorityCompareOperators sssssExpression | sssssExpression
- *  sssssExpression -> sssssExpression ADD Summand | sssssExpression MINUS Summand | Summand 
+ *  Expression -> Assigment | LogicExpr
+ *  LogicExpr -> LogicExpr LOGIC_OR LogicExpr | LogicExpr LOGIC_AND LogicExpr | CompExpr
+ *                                                          ^_ has more priority 
+ *  CompExpr -> CompExpr EQUAL CompExpr | CompExpr NOT_EQUAL CompExpr | <-- have less priority
+ *  CompExpr GREATER CompExpr |
+ *  CompExpr LESS CompExpr | 
+ *  CompExpr GREATER_OR_EQUAL CompExpr |
+ *  CompExpr LESS_OR_EQUAL CompExpr | MathExpr
+ *  MathExpr -> MathExpr ADD Summand | MathExpr MINUS Summand | Summand
  *  Summand -> Summand MULT Multiplier | Summand DIV Multiplier | Summand REMAINDER Multiplier | Multiplier
  *  Multiplier -> LBRAC Expression RBRAC | NEGATION Multiplier | MINUS Multiplier | Terminals
  *  Terminals -> NUMBER | NAME | INPUT
+
+Expression: Assigment | LogicExpr
+
+
+CompExpr: CompExpr EQUAL CompExpr | CompExpr NOT_EQUAL CompExpr | CompExpr GREATER CompExpr | CompExpr LESS CompExpr | CompExpr GREATER_OR_EQUAL CompExpr | CompExpr LESS_OR_EQUAL CompExpr | MathExpr
+MathExpr: MathExpr ADD Summand | MathExpr MINUS Summand | Summand
  *
  *
  *  Condition -> IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE | IF LBRAC Expression RBRAC Statement ELSE Statement
@@ -167,45 +176,13 @@ Statement: OUTPUT Expression SEMICOLON {
 };
 
 Condition: IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE {
-    node::ScopeNode* scope = nullptr;
-    if ($5->type_ == node::Node_t::scope) {
-        scope = static_cast<node::ScopeNode*>($5);
-    } else {
-        scope = driver->GetNode<node::ScopeNode>(@5);
-        scope->AddStatement($5);
-    }
-    
-    $$ = driver->GetNode<node::CondNode>($3, scope, nullptr, @1);
+    $$ = driver->GetNode<node::CondNode>($3, $5, nullptr, @1);
 } | IF LBRAC Expression RBRAC Statement ELSE Statement {
-    node::ScopeNode* scope1 = nullptr;
-    if ($5->type_ == node::Node_t::scope) {
-        scope1 = static_cast<node::ScopeNode*>($5);
-    } else {
-        scope1 = driver->GetNode<node::ScopeNode>(@5);
-        scope1->AddStatement($5);
-    }
-
-    node::ScopeNode* scope2 = nullptr;
-    if ($7->type_ == node::Node_t::scope) {
-        scope2 = static_cast<node::ScopeNode*>($7);
-    } else {
-        scope2 = driver->GetNode<node::ScopeNode>(@7);
-        scope2->AddStatement($7);
-    }
-
-    $$ = driver->GetNode<node::CondNode>($3, scope1, scope2, @1);
+    $$ = driver->GetNode<node::CondNode>($3, $5, $7, @1);
 };
 
 Loop: WHILE LBRAC Expression RBRAC Statement {
-    node::ScopeNode* scope = nullptr;
-    if ($5->type_ == node::Node_t::scope) {
-        scope = static_cast<node::ScopeNode*>($5);
-    } else {
-        scope = driver->GetNode<node::ScopeNode>(@5);
-        scope->AddStatement($5);
-    }
-
-    $$ = driver->GetNode<node::LoopNode>($3, scope, @1);
+    $$ = driver->GetNode<node::LoopNode>($3, $5, @1);
 };
 
 SubScope: LCURBRAC Scope RCURBRAC {

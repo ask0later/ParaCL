@@ -20,16 +20,6 @@ namespace node {
         }; // class Builder
     } // namespace details
 
-    enum class Node_t {
-        no_type,
-        expr,
-        decl,
-        cond,
-        loop, 
-        scope,
-        output
-    };
-
     enum UnOpNode_t {
         minus = 10,
         negation
@@ -61,50 +51,48 @@ namespace node {
 
     struct Node {
     public:
-        Node(Node_t type, yy::Location location) :
-            type_(type), location_(location) {}
+        Node(yy::Location location) : location_(location) {}
         virtual ~Node() = default;
         virtual void Accept(NodeVisitor &visitor) = 0;
-        Node_t type_;
         yy::Location location_;
     }; // class Node
 
     struct ExprNode : public Node {
-        ExprNode(yy::Location location) : Node(Node_t::expr, location) {}
+        ExprNode(yy::Location location) : Node(location) {}
         void Accept(NodeVisitor &visitor) override = 0;
     }; // class ExprNode
 
     struct ScopeNode final : public Node {
-        ScopeNode(yy::Location location) : Node(Node_t::scope, location) {}
+        ScopeNode(yy::Location location) : Node(location) {}
         void Accept(NodeVisitor &visitor) override;
         void AddStatement(Node *child) { kids_.push_back(child); }
         std::vector<Node*> kids_;
     }; // class ScopeNode
 
     struct DeclNode final : public Node {
-        DeclNode(const std::string &name, yy::Location location) : Node(Node_t::decl, location), name_(std::move(name)) {}
+        DeclNode(const std::string &name, yy::Location location) : Node(location), name_(std::move(name)) {}
         void Accept(NodeVisitor &visitor) override;
         std::string name_;
     }; // class DeclNode
 
     struct CondNode final : public Node {
-        CondNode(ExprNode *predicat, ScopeNode *first, ScopeNode *second, yy::Location location) :
-            Node(Node_t::cond, location), predicat_(predicat), first_(first), second_(second) {}
+        CondNode(ExprNode *predicat, Node *first, Node *second, yy::Location location) :
+            Node(location), predicat_(predicat), first_(first), second_(second) {}
         void Accept(NodeVisitor &visitor) override;
         ExprNode *predicat_;
-        ScopeNode *first_;
-        ScopeNode *second_;
+        Node *first_;
+        Node *second_;
     }; // class CondNode
 
     struct LoopNode final : public Node {
-        LoopNode(ExprNode *predicat, ScopeNode *scope, yy::Location location) : Node(Node_t::loop, location), predicat_(predicat), scope_(scope) {}
+        LoopNode(ExprNode *predicat, Node *scope, yy::Location location) : Node(location), predicat_(predicat), scope_(scope) {}
         void Accept(NodeVisitor &visitor) override;
         ExprNode *predicat_;
-        ScopeNode *scope_;
+        Node *scope_;
     }; // class LoopNode 
 
     struct OutputNode final : public Node {
-        OutputNode(ExprNode *expr, yy::Location location) : Node(Node_t::output, location), expr_(expr) {}
+        OutputNode(ExprNode *expr, yy::Location location) : Node(location), expr_(expr) {}
         void Accept(NodeVisitor &visitor) override;
         ExprNode *expr_;
     }; // class OutputNode
