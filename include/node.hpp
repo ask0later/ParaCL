@@ -75,7 +75,7 @@ namespace node {
     }; // class ExprNode
 
     struct ScopeNode final : public Node {
-        ScopeNode(yy::Location location) : Node(Node_t::scope, location), kids_(1) {}
+        ScopeNode(yy::Location location) : Node(Node_t::scope, location) {}
         void Accept(NodeVisitor &visitor) override;
         void AddStatement(Node *child) { kids_.push_back(child); }
         std::vector<Node*> kids_;
