@@ -11,12 +11,12 @@
 namespace yy {
 
 class Driver final {
-    Driver(std::string_view file_name) : file_name_(std::string(file_name)), 
+    Driver(const std::string_view file_name) : file_name_(file_name), 
                                          lex_(yy::Lexer::QueryLexer(file_name)),
                                          err_handler_(err::ErrorHandler::QueryErrorHandler()) {}
     ~Driver() {}
 public:
-    static Driver &QueryDriver(std::string_view file_name) {
+    static Driver &QueryDriver(const std::string_view file_name) {
         static Driver driver{file_name};
         return driver;
     }
@@ -62,8 +62,8 @@ public:
         return tt;
     }
 
-    bool parse() {
-        std::ifstream input_file(file_name_);
+    bool Parse() {
+        std::ifstream input_file(file_name_.data());
         lex_.switch_streams(input_file, std::cout);
         
         bool res = false; 
@@ -104,7 +104,7 @@ private:
     yy::Lexer &lex_;
     node::Node *root_ = nullptr;
     node::details::Builder<node::Node> builder_;
-    const std::string file_name_;
+    const std::string_view file_name_;
     err::ErrorHandler &err_handler_;
 };
 } // namespace yy
