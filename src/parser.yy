@@ -7,15 +7,24 @@
  *  Statement -> Output Expression | Condition | Loop | Assigment SEMICOLON | SubScope | SEMICOLON
  *
  *
- *  Expression -> Assigment | sExpression
- *  sExpression -> sExpression LOGIC_OR ssExpression | ssExpression
- *  ssExpression -> ssExpression LOGIC_AND sssExpression | sssExpression
- *  sssExpression -> sssExpression NotPriorityCompareOperators ssssExpression | ssssExpression
- *  ssssExpression -> ssssExpression PriorityCompareOperators sssssExpression | sssssExpression
- *  sssssExpression -> sssssExpression ADD Summand | sssssExpression MINUS Summand | Summand 
+ *  Expression -> Assigment | LogicExpr
+ *  LogicExpr -> LogicExpr LOGIC_OR LogicExpr | LogicExpr LOGIC_AND LogicExpr | CompExpr
+ *                                                          ^_ has more priority 
+ *  CompExpr -> CompExpr EQUAL CompExpr | CompExpr NOT_EQUAL CompExpr | <-- have less priority
+ *  CompExpr GREATER CompExpr |
+ *  CompExpr LESS CompExpr | 
+ *  CompExpr GREATER_OR_EQUAL CompExpr |
+ *  CompExpr LESS_OR_EQUAL CompExpr | MathExpr
+ *  MathExpr -> MathExpr ADD Summand | MathExpr MINUS Summand | Summand
  *  Summand -> Summand MULT Multiplier | Summand DIV Multiplier | Summand REMAINDER Multiplier | Multiplier
  *  Multiplier -> LBRAC Expression RBRAC | NEGATION Multiplier | MINUS Multiplier | Terminals
  *  Terminals -> NUMBER | NAME | INPUT
+
+Expression: Assigment | LogicExpr
+
+
+CompExpr: CompExpr EQUAL CompExpr | CompExpr NOT_EQUAL CompExpr | CompExpr GREATER CompExpr | CompExpr LESS CompExpr | CompExpr GREATER_OR_EQUAL CompExpr | CompExpr LESS_OR_EQUAL CompExpr | MathExpr
+MathExpr: MathExpr ADD Summand | MathExpr MINUS Summand | Summand
  *
  *
  *  Condition -> IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE | IF LBRAC Expression RBRAC Statement ELSE Statement
@@ -117,37 +126,23 @@
 %nterm <node::LoopNode*> Loop
 
 %nterm <node::ExprNode*> Expression
-%nterm <node::ExprNode*> sExpression
-%nterm <node::ExprNode*> ssExpression
-%nterm <node::ExprNode*> sssExpression
-%nterm <node::ExprNode*> ssssExpression
-%nterm <node::ExprNode*> sssssExpression
+%nterm <node::ExprNode*> LogicExpr
+%nterm <node::ExprNode*> CompExpr
+%nterm <node::ExprNode*> MathExpr
+
 %nterm <node::ExprNode*> Summand
 %nterm <node::ExprNode*> Multiplier
 %nterm <node::ExprNode*> Terminals
 
-%nterm <node::BinCompOpNode_t> PriorityCompareOperators
-%nterm <node::BinCompOpNode_t> NotPriorityCompareOperators
+%left EQUAL NOT_EQUAL
+%left GREATER LESS GREATER_OR_EQUAL LESS_OR_EQUAL
+
+%left LOGIC_OR
+%left LOGIC_AND
 
 %start program
 
 %%
-
-NotPriorityCompareOperators: EQUAL {
-    $$ = node::BinCompOpNode_t::equal;
-} | NOT_EQUAL {
-    $$ = node::BinCompOpNode_t::not_equal;
-};
-
-PriorityCompareOperators: GREATER {
-    $$ = node::BinCompOpNode_t::greater;
-} | LESS {
-    $$ = node::BinCompOpNode_t::less;
-} | GREATER_OR_EQUAL {
-    $$ = node::BinCompOpNode_t::greater_or_equal;
-} | LESS_OR_EQUAL {
-    $$ = node::BinCompOpNode_t::less_or_equal;
-};
 
 program: Scope {
     driver->SetRootNode($1);
@@ -181,46 +176,13 @@ Statement: OUTPUT Expression SEMICOLON {
 };
 
 Condition: IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE {
-    node::ScopeNode* scope = nullptr;
-    if ($5->type_ == node::Node_t::scope) {
-        scope = static_cast<node::ScopeNode*>($5);
-    } else {
-        scope = driver->GetNode<node::ScopeNode>(@5);
-        scope->AddStatement($5);
-    }
-    
-    $$ = driver->GetNode<node::CondNode>($3, scope, nullptr, @1);
+    $$ = driver->GetNode<node::CondNode>($3, $5, nullptr, @1);
 } | IF LBRAC Expression RBRAC Statement ELSE Statement {
-    node::ScopeNode* scope1 = nullptr;
-    if ($5->type_ == node::Node_t::scope) {
-        scope1 = static_cast<node::ScopeNode*>($5);
-    } else {
-        scope1 = driver->GetNode<node::ScopeNode>(@5);
-        scope1->AddStatement($5);
-    }
-
-    node::ScopeNode* scope2 = nullptr;
-    if ($7->type_ == node::Node_t::scope) {
-        scope2 = static_cast<node::ScopeNode*>($7);
-    } else {
-        scope2 = driver->GetNode<node::ScopeNode>(@7);
-        scope2->AddStatement($7);
-    }
-
-    $$ = driver->GetNode<node::CondNode>($3, scope1, scope2, @1);
+    $$ = driver->GetNode<node::CondNode>($3, $5, $7, @1);
 };
 
 Loop: WHILE LBRAC Expression RBRAC Statement {
-    node::Node* node = nullptr;
-    if ($5->type_ == node::Node_t::scope) {
-        node = $5;
-    } else {
-        auto scope = driver->GetNode<node::ScopeNode>(@5);
-        scope->AddStatement($5);
-        node = static_cast<node::Node*>(scope);
-    }
-
-    $$ = driver->GetNode<node::LoopNode>($3, static_cast<node::ScopeNode*>(node), @1);
+    $$ = driver->GetNode<node::LoopNode>($3, $5, @1);
 };
 
 SubScope: LCURBRAC Scope RCURBRAC {
@@ -234,37 +196,37 @@ Assigment: NAME ASSIGMENT Expression {
 
 Expression: Assigment {
     $$ = $1;
-} | sExpression {
+} | LogicExpr {
     $$ = $1;
 };
 
-sExpression: sExpression LOGIC_OR ssExpression {
+LogicExpr: LogicExpr LOGIC_OR LogicExpr {
     $$ = driver->GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_or, $1, $3, @2);
-} | ssExpression {
-    $$ = $1;
-};
-
-ssExpression: ssExpression LOGIC_AND sssExpression {
+} | LogicExpr LOGIC_AND LogicExpr {
     $$ = driver->GetNode<node::LogicOpNode>(node::LogicOpNode_t::logic_and, $1, $3, @2);
-} | sssExpression {
+} | CompExpr {
     $$ = $1;
 };
 
-sssExpression: sssExpression NotPriorityCompareOperators ssssExpression {
-    $$ = driver->GetNode<node::BinCompOpNode>($2, $1, $3, @2);
-} | ssssExpression {
-    $$ = $1;
+CompExpr: CompExpr EQUAL CompExpr { 
+	$$ = driver->GetNode<node::BinCompOpNode>(node::BinCompOpNode_t::equal, $1, $3, @2); 
+} | CompExpr NOT_EQUAL CompExpr {
+	$$ = driver->GetNode<node::BinCompOpNode>(node::BinCompOpNode_t::not_equal, $1, $3, @2); 
+} | CompExpr GREATER CompExpr { 
+	$$ = driver->GetNode<node::BinCompOpNode>(node::BinCompOpNode_t::greater, $1, $3, @2); 
+} | CompExpr LESS CompExpr {
+	$$ = driver->GetNode<node::BinCompOpNode>(node::BinCompOpNode_t::less, $1, $3, @2);
+} | CompExpr GREATER_OR_EQUAL CompExpr {
+	$$ = driver->GetNode<node::BinCompOpNode>(node::BinCompOpNode_t::greater_or_equal, $1, $3, @2);
+} | CompExpr LESS_OR_EQUAL CompExpr {
+	$$ = driver->GetNode<node::BinCompOpNode>(node::BinCompOpNode_t::less_or_equal, $1, $3, @2);
+} | MathExpr {
+	$$ = $1;
 };
 
-ssssExpression: ssssExpression PriorityCompareOperators sssssExpression {
-    $$ = driver->GetNode<node::BinCompOpNode>($2, $1, $3, @2);
-} | sssssExpression {
-    $$ = $1;
-};
-
-sssssExpression: sssssExpression ADD Summand {
+MathExpr: MathExpr ADD Summand {
     $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::add, $1, $3, @2);
-} | sssssExpression MINUS Summand {
+} | MathExpr MINUS Summand {
     $$ = driver->GetNode<node::BinOpNode>(node::BinOpNode_t::sub, $1, $3, @2);
 } | Summand {
     $$ = $1;

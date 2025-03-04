@@ -1,8 +1,6 @@
-#include <string>
 #include "driver.hpp"
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Choose program to execute" << std::endl;
         return 0;
@@ -10,7 +8,7 @@ int main(int argc, char* argv[])
 
     try {
         yy::Driver &driver = yy::Driver::QueryDriver(argv[1]);
-        driver.parse();
+        driver.Parse();
         driver.DrawAST();
         driver.Execute();
     } catch (std::exception &ex) {

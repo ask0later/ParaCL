@@ -8,9 +8,9 @@
 
 namespace yy {
     class Lexer final : public yyFlexLexer {
-        Lexer(std::string_view file_name) : yyFlexLexer(), loc_(file_name) {}
+        Lexer(const std::string_view file_name) : yyFlexLexer(), loc_(file_name) {}
     public:
-        static Lexer &QueryLexer(std::string_view file_name) {
+        static Lexer &QueryLexer(const std::string_view file_name) {
             static Lexer lexer{file_name};
             return lexer;
         }
