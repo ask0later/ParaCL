@@ -143,14 +143,14 @@ Scope: StatementList {
     $$ = $1;
 };
 
-StatementList: StatementList Statement {
-    if ($2)
-        $1->AddStatement($2);
-
-    $$ = $1;
-} | %empty {
+StatementList: %empty {
     $$ = driver->GetNode<node::ScopeNode>(driver->GetLocation());
-};
+} | StatementList SEMICOLON {
+    $$ = $1;
+} | StatementList Statement {
+    $1->AddStatement($2);
+    $$ = $1;
+} ;
 
 Statement: OUTPUT Expression SEMICOLON {
     $$ = driver->GetNode<node::OutputNode>($2, @1);
@@ -162,8 +162,6 @@ Statement: OUTPUT Expression SEMICOLON {
     $$ = $1;
 } | SubScope {
     $$ = $1;
-} | SEMICOLON {
-    $$ = nullptr;
 };
 
 Condition: IF LBRAC Expression RBRAC Statement %prec LOWER_THAN_ELSE {
