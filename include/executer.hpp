@@ -209,9 +209,7 @@ namespace executer {
             symbolTables_.PopSymTable();
         }
 
-        void Visit(node::DeclNode &node) override {
-            SetStrParam(node.name_);
-        }
+        void Visit(node::DeclNode &node) override {}
 
         void Visit(node::CondNode &node) override {
             node.predicat_->Accept(*this);
@@ -240,8 +238,7 @@ namespace executer {
             assert(node.expr_);
             node.expr_->Accept(*this);
             assert(node.var_);
-            node.var_->Accept(*this);
-            symbolTables_.SetValue(GetStrParam(), GetParam());
+            symbolTables_.SetValue(node.var_->name_, GetParam());
         }
 
         void Visit(node::OutputNode &node) override {
@@ -259,16 +256,7 @@ namespace executer {
             param_ = param;
         }
 
-        std::string_view GetStrParam() const {
-            return string_param_;
-        }
-
-        void SetStrParam(std::string_view string_param) {
-            string_param_ = string_param;
-        }
-
         int param_ = 0;
-        std::string_view string_param_;
         symTable::SymbolTables symbolTables_;
         err::ErrorHandler &err_handler_;
     }; // class ExecuteVisitor
