@@ -1,0 +1,12 @@
+digraph DotGraph
+{
+	Node99051329932288 [shape="ellipse", color="black", fontcolor="black", fillcolor="white", style="bold, filled", weight="1", label="Scope"];
+	Node99051329932464 [shape="triangle", color="black", fontcolor="black", fillcolor="yellow", style="bold, filled", weight="1", label="Output"];
+	Node99051329932384 [shape="diamond", color="black", fontcolor="white", fillcolor="blue", style="bold, filled", weight="1", label="1"];
+	Node99051329932624 [shape="triangle", color="black", fontcolor="black", fillcolor="yellow", style="bold, filled", weight="1", label="Output"];
+	Node99051329932560 [shape="diamond", color="black", fontcolor="black", fillcolor="green", style="bold, filled", weight="1", label="c"];
+	Node99051329932464 -> Node99051329932384 [color="black", style="bold, filled", weight="1", label=""];
+	Node99051329932288 -> Node99051329932464 [color="black", style="bold, filled", weight="1", label=""];
+	Node99051329932624 -> Node99051329932560 [color="black", style="bold, filled", weight="1", label=""];
+	Node99051329932288 -> Node99051329932624 [color="black", style="bold, filled", weight="1", label=""];
+}
