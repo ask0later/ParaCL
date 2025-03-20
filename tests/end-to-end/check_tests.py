@@ -1,18 +1,20 @@
+import sys
 from subprocess import run, Popen, PIPE
 from sys import executable
 
+generator = sys.argv[1]
 num_test = 1
 is_ok = True
 for i in range(1, 24):
     print("Right tests:")
-    str_data =  "tests/end-to-end/right/" + str(i) + ".paracl"
-    str_ans = "tests/end-to-end/right/" + str(i) + ".ans"
+    str_data =  "right/" + str(i) + ".paracl"
+    str_ans = "right/" + str(i) + ".ans"
 
     ans = []
     for i in open(str_ans):
         ans.append(float(i.strip()))
 	
-    result = run(["build/src/Interpretator", str_data], capture_output = True, encoding='cp866')
+    result = run([generator, str_data], capture_output = True, encoding='cp866')
     print("Test: " + str(num_test).strip())
 
     res = list(map(float, result.stdout.split()))
@@ -44,14 +46,14 @@ print("=========================================================================
 print()
 for i in range(1, 11):
     print("Wrong tests:")
-    str_data =  "tests/end-to-end/wrong/" + str(i) + ".paracl"
-    str_ans = "tests/end-to-end/wrong/" + str(i) + ".ans"
+    str_data =  "wrong/" + str(i) + ".paracl"
+    str_ans = "wrong/" + str(i) + ".ans"
 
     ans = []
     for i in open(str_ans):
         ans.append(i)
 	
-    result = run(["build/src/Interpretator", str_data], capture_output = True, encoding='cp866')
+    result = run([generator, str_data], capture_output = True, encoding='cp866')
     print("Test: " + str(num_test).strip())
 
     res = list(result.stdout.split('\n'))
