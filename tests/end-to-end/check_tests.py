@@ -35,7 +35,7 @@ for i in range(1, 24):
     else:
         print("ERROR\nExpect:", ans, "\nGive:  ", res)
         is_ok = False
-        
+
     print("-------------------------------------------------")
     num_test += 1
 
@@ -87,6 +87,7 @@ for i in range(1, 11):
     num_test += 1
 
 if is_ok:
-	print("TESTS PASSED")
+    print("TESTS PASSED")
 else:
-	print("TESTS FAILED")
+    print("TESTS FAILED")
+    sys.exit(1)
